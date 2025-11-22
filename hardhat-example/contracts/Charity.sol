@@ -17,7 +17,11 @@ contract Charity {
         uint256 targetAmount;
         address payable campaignWallet;
         uint256 collected;
+        uint256 totalDisbursed;
         uint256 createdAt;
+        uint256 endDate;
+        uint256 updatedAt;
+        string beneficiary;
         bool active;
     }
 
@@ -35,6 +39,8 @@ contract Charity {
         uint256 timestamp;
         uint256 blockNumber;
         bytes32 txHash;
+        string proofImage;
+        string note;
     }
 
     struct Comment {
@@ -61,6 +67,8 @@ contract Charity {
 
     // -------------- Events ----------------
     event CampaignCreated(uint256 indexed id, address indexed creator);
+    event CampaignUpdated(uint256 indexed id, address indexed updater);
+    event CampaignClosed(uint256 indexed id, address indexed closer, uint256 timestamp);
     event DonationReceived(uint256 indexed campaignId, address indexed donor, uint256 amount, bytes32 txHash);
     event Disbursed(uint256 indexed campaignId, address indexed recipient, uint256 amount, bytes32 txHash);
     event CommentAdded(uint256 indexed campaignId, address indexed commenter, string text);
@@ -94,8 +102,12 @@ contract Charity {
         string calldata media,
         string calldata location,
         uint256 targetAmount,
-        address payable campaignWallet
+        address payable campaignWallet,
+        uint256 endDate,
+        string calldata beneficiary
     ) external onlyAdmin returns (uint256) {
+        require(endDate > block.timestamp, "end date must be in future");
+        
         uint256 id = nextCampaignId++;
         campaigns[id] = Campaign({
             id: id,
@@ -107,7 +119,11 @@ contract Charity {
             targetAmount: targetAmount,
             campaignWallet: campaignWallet,
             collected: 0,
+            totalDisbursed: 0,
             createdAt: block.timestamp,
+            endDate: endDate,
+            updatedAt: block.timestamp,
+            beneficiary: beneficiary,
             active: true
         });
 
@@ -148,7 +164,13 @@ contract Charity {
     }
 
     // -------------- Disbursement ----------------
-    function disburseFromContract(uint256 campaignId, address payable recipient, uint256 amount)
+    function disburseFromContract(
+        uint256 campaignId, 
+        address payable recipient, 
+        uint256 amount,
+        string calldata proofImage,
+        string calldata note
+    )
         external onlyAdmin
     {
         Campaign storage c = campaigns[campaignId];
@@ -161,12 +183,17 @@ contract Charity {
         (bool ok, ) = recipient.call{value: amount}("");
         require(ok, "transfer failed");
 
+        c.totalDisbursed += amount;
+        c.updatedAt = block.timestamp;
+
         disbursements[campaignId].push(Disbursement({
             recipient: recipient,
             amount: amount,
             timestamp: block.timestamp,
             blockNumber: block.number,
-            txHash: txHash
+            txHash: txHash,
+            proofImage: proofImage,
+            note: note
         }));
 
         emit Disbursed(campaignId, recipient, amount, txHash);
@@ -174,6 +201,43 @@ contract Charity {
 
     function setCampaignActive(uint256 campaignId, bool active) external onlyAdmin {
         campaigns[campaignId].active = active;
+        campaigns[campaignId].updatedAt = block.timestamp;
+    }
+
+    function updateCampaign(
+        uint256 campaignId,
+        string calldata title,
+        string calldata description,
+        string calldata media,
+        string calldata beneficiary
+    ) external onlyAdmin {
+        Campaign storage c = campaigns[campaignId];
+        require(c.id != 0, "campaign not found");
+        require(c.active, "campaign not active");
+        
+        c.title = title;
+        c.description = description;
+        c.media = media;
+        c.beneficiary = beneficiary;
+        c.updatedAt = block.timestamp;
+        
+        emit CampaignUpdated(campaignId, msg.sender);
+    }
+
+    function closeCampaign(uint256 campaignId) external onlyAdmin {
+        Campaign storage c = campaigns[campaignId];
+        require(c.id != 0, "campaign not found");
+        require(c.active, "already closed");
+        
+        c.active = false;
+        c.updatedAt = block.timestamp;
+        
+        emit CampaignClosed(campaignId, msg.sender, block.timestamp);
+    }
+
+    function isExpired(uint256 campaignId) public view returns (bool) {
+        Campaign storage c = campaigns[campaignId];
+        return block.timestamp > c.endDate;
     }
 
     // -------------- Comments ----------------
@@ -241,6 +305,33 @@ contract Charity {
 
     function getComment(uint256 id, uint256 index) external view returns (Comment memory) {
         return comments[id][index];
+    }
+
+    function getTotalDisbursed(uint256 id) external view returns (uint256) {
+        return campaigns[id].totalDisbursed;
+    }
+
+    function getCampaignDetails(uint256 id) external view returns (
+        uint256 _id,
+        string memory title,
+        uint256 targetAmount,
+        uint256 collected,
+        uint256 totalDisbursed,
+        uint256 endDate,
+        bool active,
+        bool expired
+    ) {
+        Campaign storage c = campaigns[id];
+        return (
+            c.id,
+            c.title,
+            c.targetAmount,
+            c.collected,
+            c.totalDisbursed,
+            c.endDate,
+            c.active,
+            block.timestamp > c.endDate
+        );
     }
 
     // -------------- Receive Donation without specifying campaign ----------------

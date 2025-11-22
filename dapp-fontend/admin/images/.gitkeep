@@ -1,0 +1,9 @@
+# Images Folder
+
+Folder này chứa các hình ảnh được upload cho các chiến dịch.
+
+## Lưu ý:
+- Các file ảnh sẽ được lưu với format: `campaign_{timestamp}_{unique_id}.{ext}`
+- Chỉ chấp nhận: JPEG, PNG, GIF, WebP
+- Kích thước tối đa: 5MB
+- URL của ảnh sẽ được lưu vào blockchain thay vì file ảnh
