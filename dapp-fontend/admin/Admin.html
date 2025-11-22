@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Hệ Thống Quỹ Từ Thiện Blockchain</title>
+
+  <!-- Bootstrap CSS (stable 5.3.x) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root { --brand: #6f42c1; }
+    body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+    .navbar-brand i { color: var(--brand); margin-right: 6px; }
+    .menu-item-nav { color: rgba(255,255,255,0.9); padding: 8px 12px; display:inline-block; border-radius:6px; }
+    .menu-item-nav.active, .menu-item-nav:hover { background: rgba(255,255,255,0.06); text-decoration: none; }
+
+    /* Stat card (simple) */
+    .stat-card { display:flex; align-items:center; gap:12px; padding:12px; border-radius:10px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+    .stat-icon { width:56px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:12px; color:#fff; }
+    .stat-value { font-size:1.45rem; font-weight:700; }
+    .stat-label { color:#6b7280; font-size:0.9rem; }
+
+    /* Page content toggling */
+    .page-content { display:none; }
+    .page-content.active { display:block; }
+
+    /* Activity list styling */
+    .activity-list p { margin:0; }
+
+    /* small responsive tweaks */
+    @media (max-width: 767px) { .navbar-nav.mx-auto { display:none; } }
+  </style>
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <i class="fas fa-heart"></i>
+        <span class="ms-1">Charity Blockchain Admin</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto gap-2">
+          <li class="nav-item"><a class="menu-item-nav active nav-link" href="#" data-page="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+          <li class="nav-item"><a class="menu-item-nav nav-link" href="#" data-page="create-campaign"><i class="fas fa-plus-circle"></i> Tạo Chiến Dịch</a></li>
+          <li class="nav-item"><a class="menu-item-nav nav-link" href="#" data-page="campaigns"><i class="fas fa-list"></i> Quản Lý</a></li>
+          <li class="nav-item"><a class="menu-item-nav nav-link" href="#" data-page="disburse"><i class="fas fa-money-bill-wave"></i> Giải Ngân</a></li>
+          <li class="nav-item"><a class="menu-item-nav nav-link" href="#" data-page="transactions"><i class="fas fa-exchange-alt"></i> Giao Dịch</a></li>
+        </ul>
+
+        <ul class="navbar-nav ms-auto align-items-center">
+          <li class="nav-item me-2">
+            <span id="adminWallet" class="badge bg-secondary" style="font-size:0.95rem; cursor:pointer;" title="Kết nối ví">
+              <i class="fas fa-wallet"></i> <span id="adminWalletLabel">Kết nối ví</span>
+            </span>
+          </li>
+          <li class="nav-item">
+            <button id="connectLocalBtn" class="btn btn-sm btn-outline-light ms-2" title="Kết nối tới Hardhat RPC (dev)">
+              <i class="fas fa-desktop"></i> Local RPC
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="logoutBtn" class="btn btn-sm btn-outline-light ms-2" style="display:none;">
+              <i class="fas fa-sign-out-alt"></i> Thoát
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Alert Box -->
+  <div id="alertPlaceholder" class="container mt-4"></div>
+
+  <!-- Main Container -->
+  <div class="container-fluid mt-4">
+    <div class="row">
+      <div class="col-12">
+        <!-- Dashboard Page -->
+        <section id="dashboard" class="page-content active">
+          <div class="mb-4">
+            <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+            <p>Tổng quan hệ thống quỹ từ thiện blockchain của bạn</p>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="row mb-4 g-3">
+            <div class="col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);">
+                  <i class="fas fa-flag"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalCampaigns">0</div>
+                  <div class="stat-label">Chiến Dịch</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                  <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalFunds">0</div>
+                  <div class="stat-label">Tổng Tiền</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);">
+                  <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalTransactions">0</div>
+                  <div class="stat-label">Giao Dịch</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Section -->
+          <div class="card">
+            <div class="card-header"><i class="fas fa-history"></i> Hoạt Động Gần Đây</div>
+            <div class="card-body">
+              <div id="recentActivity" class="activity-list">
+                <p class="text-muted">Chưa có hoạt động</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Create Campaign Page -->
+        <section id="create-campaign" class="page-content">
+          <div class="mb-4">
+            <h1><i class="fas fa-plus-circle"></i> Tạo Chiến Dịch Từ Thiện</h1>
+            <p>Tạo bài đăng kêu gọi ủng hộ mới cho cộng đồng</p>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <form id="campaignForm">
+                <div class="mb-4">
+                  <label class="form-label">Tiêu Đề Chiến Dịch <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="campaignTitle" required placeholder="VD: Quỹ học tập cho trẻ em khó khăn" />
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Nội Dung & Hoàn Cảnh <span class="text-danger">*</span></label>
+                  <textarea class="form-control" id="campaignContent" rows="4" required placeholder="Mô tả chi tiết tình huống, lý do cần tập hợp quỹ..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Hình Ảnh / Video</label>
+                  <input type="file" class="form-control" id="campaignImage" accept="image/*,video/*" />
+                  <small class="text-muted">Hỗ trợ: JPG, PNG, MP4... (tải lên lên IPFS/S3 từ frontend hoặc backend)</small>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Số Tiền Cần Quyên Góp (ETH) <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="campaignTargetAmount" step="0.01" min="0.01" required placeholder="VD: 10.5" />
+                </div>
+
+                <div class="row mb-4 g-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Tỉnh/Thành Phố <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="campaignProvince" required placeholder="VD: Hà Nội" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Quận/Huyện <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="campaignDistrict" required placeholder="VD: Hoàn Kiếm" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Phường/Xã</label>
+                    <input type="text" class="form-control" id="campaignWard" placeholder="VD: Hàng Bạc" />
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Mục Tiêu Cụ Thể <span class="text-danger">*</span></label>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="objective" id="obj-medical" value="medical" />
+                        <label class="form-check-label" for="obj-medical"><i class="fas fa-heartbeat" style="color:#ef4444"></i> Y Tế / Bệnh Tật</label>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="objective" id="obj-education" value="education" />
+                        <label class="form-check-label" for="obj-education"><i class="fas fa-book" style="color:#3b82f6"></i> Giáo Dục</label>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="objective" id="obj-disaster" value="disaster" />
+                        <label class="form-check-label" for="obj-disaster"><i class="fas fa-bolt" style="color:#f59e0b"></i> Thảm Họa Tự Nhiên</label>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="objective" id="obj-poverty" value="poverty" />
+                        <label class="form-check-label" for="obj-poverty"><i class="fas fa-hand-holding-heart" style="color:#10b981"></i> Giảm Nghèo</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Smart Contract Address <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="campaignContractAddress" required placeholder="0x..." />
+                  <small class="text-muted">Địa chỉ hợp đồng (hoặc ví) để nhận tiền. Nếu bạn muốn tiền gửi vào contract để quản lý công khai, để trống campaign wallet khi tạo contract hoặc ghi rõ trong mô tả.</small>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">QR Code Ví Nhận Tiền</label>
+                  <input type="file" class="form-control" id="campaignQRCode" accept="image/*" />
+                  <small class="text-muted">Tùy chọn: tải QR code để hiển thị tại trang chi tiết.</small>
+                </div>
+
+                <div class="d-grid gap-2">
+                  <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Tạo Chiến Dịch Ngay</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- Manage Campaigns Page -->
+        <section id="campaigns" class="page-content">
+          <div class="mb-4">
+            <h1><i class="fas fa-list"></i> Quản Lý Chiến Dịch</h1>
+            <p>Quản lý tất cả chiến dịch từ thiện</p>
+          </div>
+
+          <div class="mb-4">
+            <input type="text" class="form-control" id="campaignSearchBox" placeholder="🔍 Tìm kiếm chiến dịch..." style="font-size:1rem;" />
+          </div>
+
+          <div id="campaignsList" class="row g-4"></div>
+        </section>
+
+        <!-- Disburse Page -->
+        <section id="disburse" class="page-content">
+          <div class="mb-4">
+            <h1><i class="fas fa-money-bill-wave"></i> Giải Ngân Tiền Từ Thiện</h1>
+            <p>Chuyển tiền từ quỹ đến những người cần giúp đỡ</p>
+          </div>
+
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-arrow-right"></i> Thực Hiện Giải Ngân</h5></div>
+                <div class="card-body">
+                  <form id="disburseForm">
+                    <div class="mb-4">
+                      <label class="form-label">Chọn Chiến Dịch <span class="text-danger">*</span></label>
+                      <select class="form-select" id="disburseCampaign" required>
+                        <option value="">-- Chọn chiến dịch --</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="form-label">Số Tiền Giải Ngân (ETH) <span class="text-danger">*</span></label>
+                      <input type="number" class="form-control" id="disburseAmount" step="0.01" min="0.01" required placeholder="VD: 5.25" />
+                      <div id="disburseWarning" class="alert alert-warning mt-2" style="display:none;"></div>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="form-label">Địa Chỉ Ví Nhận Tiền <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="disburseRecipient" required placeholder="0x..." />
+                      <small class="text-muted">Địa chỉ Ethereum của người nhận tiền</small>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="form-label">Ghi Chú / Mục Đích</label>
+                      <textarea class="form-control" id="disburseNote" rows="3" placeholder="Mô tả mục đích giải ngân..."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                      <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-check-circle"></i> Xác Nhận Giải Ngân</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-history"></i> Lịch Sử Giải Ngân</h5></div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table" id="disburseHistoryTable">
+                      <thead>
+                        <tr><th>Số Tiền</th><th>Thời Gian</th><th>Trạng Thái</th></tr>
+                      </thead>
+                      <tbody id="disburseHistoryBody"><tr><td colspan="3" class="text-center text-muted">Chưa có giao dịch</td></tr></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Transactions Page -->
+        <section id="transactions" class="page-content">
+          <div class="mb-4">
+            <h1><i class="fas fa-exchange-alt"></i> Lịch Sử Giao Dịch</h1>
+            <p>Toàn bộ giao dịch blockchain được ghi lại</p>
+          </div>
+
+          <div class="mb-4">
+            <select class="form-select" id="transactionFilter" style="max-width:200px;">
+              <option value="">Tất Cả Giao Dịch</option>
+              <option value="donation">Tiền Ủng Hộ</option>
+              <option value="disburse">Giải Ngân</option>
+            </select>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table" id="transactionsTable">
+                  <thead>
+                    <tr><th>Loại</th><th>Chiến Dịch</th><th>Số Tiền (ETH)</th><th>Thời Gian</th><th>TxHash</th><th>Block</th></tr>
+                  </thead>
+                  <tbody id="transactionsBody"><tr><td colspan="6" class="text-center text-muted">Chưa có giao dịch</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Ethers (example) - ensure you use the right version for your project -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+
+
+  <script>
+    // Basic page switching (safe default if script.js not present yet)
+    function showPage(pageName) {
+      document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+      const el = document.getElementById(pageName);
+      if (el) el.classList.add('active');
+      // update active class on menu
+      document.querySelectorAll('.menu-item-nav').forEach(m => m.classList.remove('active'));
+      const activeMenu = document.querySelector(`.menu-item-nav[data-page="${pageName}"]`);
+      if (activeMenu) activeMenu.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Attach click handlers for navigation (fallback)
+    document.querySelectorAll('.menu-item-nav').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const pageName = item.getAttribute('data-page') || 'dashboard';
+        showPage(pageName);
+      });
+    });
+
+    // small helper for showing alerts
+    function showAlert(message, type = 'info', timeout = 4000) {
+      const wrap = document.getElementById('alertPlaceholder');
+      const id = 'alert-' + Date.now();
+      wrap.innerHTML = `<div id="${id}" class="alert alert-${type} alert-dismissible fade show">${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
+      if (timeout) setTimeout(() => { const a = document.getElementById(id); if (a) a.classList.remove('show'); }, timeout);
+    }
+
+    // Example: inform user if ethers/contract.js not loaded
+    window.addEventListener('load', () => {
+      if (typeof ethers === 'undefined') {
+        showAlert('Cảnh báo: Thư viện ethers chưa được tải. Kiểm tra đường dẫn script.', 'warning', 7000);
+      }
+    });
+  </script>
+
+  <!-- App script (your logic) -->
+<script type="module" src="Script.js"></script>
+</body>
+</html>
