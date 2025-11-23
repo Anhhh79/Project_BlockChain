@@ -82,81 +82,87 @@ async function loadFeaturedCampaigns() {
 
 async function createCampaignCard(campaign) {
     const col = document.createElement('div');
-    col.className = 'col-lg-4 col-md-6 mb-4 fade-in-up';
+    col.className = 'col-lg-4 col-md-6 mb-4';
     
     // Get additional data
-    const supportersCount = await window.smartContract.getSupportersCount(campaign.id);
     const likesCount = await window.smartContract.getLikesCount(campaign.id);
     
-    // Determine badge
-    let badge = '';
-    if (campaign.daysLeft < 7) {
-        badge = '<span class="badge bg-danger">Sắp kết thúc</span>';
-    } else if (campaign.progress >= 75) {
-        badge = '<span class="badge bg-success">Gần đạt mục tiêu</span>';
-    } else {
-        badge = '<span class="badge bg-primary">Đang diễn ra</span>';
+    // Determine badge status
+    let badgeClass = 'badge-success';
+    let badgeText = 'Hoạt động';
+    
+    if (campaign.daysLeft <= 0) {
+        badgeClass = 'badge-danger';
+        badgeText = 'Đã kết thúc';
+    } else if (campaign.daysLeft < 7) {
+        badgeClass = 'badge-warning';
+        badgeText = 'Sắp kết thúc';
+    } else if (campaign.progress >= 100) {
+        badgeClass = 'badge-info';
+        badgeText = 'Đã đạt mục tiêu';
     }
     
-    // Get image from media or use default
+    // Get image
     const imageUrl = campaign.media || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=250&fit=crop';
     
+    // Format amounts in VND
+    const collectedDisplay = campaign.collectedVnd || '0';
+    const targetDisplay = campaign.targetVnd || '0';
+    
     col.innerHTML = `
-        <div class="campaign-card bg-white rounded-3 shadow-sm h-100 hover-lift">
-            <div class="position-relative">
-                ${badge ? `<div class="position-absolute top-0 start-0 m-3 z-3">${badge}</div>` : ''}
-                <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-3 z-3 like-btn" data-campaign-id="${campaign.id}">
+        <div class="campaign-card">
+            <div class="campaign-image">
+                <img src="${imageUrl}" alt="${campaign.title}"
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23e9ecef%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%236c757d%22 font-family=%22Arial%22 font-size=%2220%22 text-anchor=%22middle%22 x=%22200%22 y=%22135%22%3ECampaign Image%3C/text%3E%3C/svg%3E'">
+                <span class="campaign-badge ${badgeClass}">${badgeText}</span>
+                <button class="like-btn" data-campaign-id="${campaign.id}">
                     <i class="far fa-heart"></i>
                     <span class="like-count">${likesCount}</span>
                 </button>
-                <img src="${imageUrl}" alt="${campaign.title}" 
-                     class="w-100 rounded-top-3" 
-                     style="height: 200px; object-fit: cover;"
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23e9ecef%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%236c757d%22 font-family=%22Arial%22 font-size=%2220%22 text-anchor=%22middle%22 x=%22200%22 y=%22135%22%3ECampaign Image%3C/text%3E%3C/svg%3E'">
             </div>
-            <div class="p-4">
-                <h6 class="fw-bold mb-2 text-truncate-2">${campaign.title}</h6>
-                <p class="text-muted small mb-3 text-truncate-3">${campaign.description}</p>
+            <div class="card-body">
+                <h5 class="card-title">${campaign.title}</h5>
+                <p class="card-text">${campaign.description}</p>
                 
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <small class="text-muted">Tiến độ</small>
-                        <small class="fw-bold text-primary">${campaign.progress}%</small>
+                <div class="campaign-progress">
+                    <div class="progress-label">
+                        <span>Tiến độ</span>
+                        <span class="progress-percentage">${campaign.progress}%</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
+                    <div class="progress">
                         <div class="progress-bar" role="progressbar" 
-                             style="width: ${campaign.progress}%"></div>
+                             style="width: ${campaign.progress}%" 
+                             aria-valuenow="${campaign.progress}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100"></div>
                     </div>
                 </div>
                 
-                <div class="row text-center mb-3">
-                    <div class="col-4">
-                        <h6 class="fw-bold text-primary mb-0 small">${campaign.collectedEth}</h6>
-                        <small class="text-muted" style="font-size: 0.7rem;">ETH</small>
+                <div class="campaign-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Đã quyên góp</span>
+                        <span class="stat-value amount">${collectedDisplay} <small>VND</small></span>
                     </div>
-                    <div class="col-4">
-                        <h6 class="fw-bold text-success mb-0 small">${supportersCount}</h6>
-                        <small class="text-muted" style="font-size: 0.7rem;">Người ủng hộ</small>
-                    </div>
-                    <div class="col-4">
-                        <h6 class="fw-bold text-info mb-0 small">${campaign.daysLeft}</h6>
-                        <small class="text-muted" style="font-size: 0.7rem;">Ngày còn lại</small>
+                    <div class="stat-item text-end">
+                        <span class="stat-label">Mục tiêu</span>
+                        <span class="stat-value target">${targetDisplay} <small>VND</small></span>
                     </div>
                 </div>
                 
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-map-marker-alt text-muted me-2"></i>
-                    <small class="text-muted">${campaign.location}</small>
-                </div>
-                
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <small class="text-success">Đã xác minh</small>
-                </div>
-                
-                <div class="d-grid">
-                    <a href="campaign-detail.html?id=${campaign.id}" class="btn btn-primary">
-                        <i class="fas fa-eye me-2"></i>Xem chi tiết
+                <div class="campaign-info mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${campaign.location || 'Việt Nam'}</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-clock"></i>
+                            <span>${campaign.daysLeft > 0 ? campaign.daysLeft + ' ngày còn lại' : 'Đã kết thúc'}</span>
+                        </div>
+                    </div>
+                    <a href="campaign-detail.html?id=${campaign.id}" 
+                       class="btn btn-primary w-100 mt-3">
+                        Xem chi tiết
                     </a>
                 </div>
             </div>
@@ -231,36 +237,54 @@ async function handleLike(event, campaignId) {
 }
 
 async function updateHomeStats(campaigns) {
-    // Total campaigns
+    // Total active campaigns
+    const activeCampaigns = campaigns.filter(c => c.active);
     const totalCampaignsEl = document.getElementById('totalCampaigns');
     if (totalCampaignsEl) {
-        totalCampaignsEl.textContent = campaigns.length.toLocaleString('vi-VN');
+        totalCampaignsEl.textContent = activeCampaigns.length;
     }
     
-    // Total donated
-    let totalDonated = 0;
-    for (const campaign of campaigns) {
-        totalDonated += parseFloat(campaign.collectedEth);
-    }
-    
-    const totalDonatedEl = document.getElementById('totalDonated');
-    if (totalDonatedEl) {
-        // Convert to VND (mock rate)
-        const vnd = await window.smartContract.convertToVND(totalDonated);
-        totalDonatedEl.textContent = formatNumber(vnd) + ' VND';
-    }
-    
-    // Total supporters (unique)
+    // Calculate total donations and supporters
+    let totalDonations = 0;
     let totalSupporters = 0;
+    
     for (const campaign of campaigns) {
-        const count = await window.smartContract.getSupportersCount(campaign.id);
-        totalSupporters += count;
+        // Get total collected for each campaign
+        totalDonations += parseFloat(campaign.collectedEth || 0);
+        
+        // Get supporters count for each campaign
+        try {
+            const supportersCount = await window.smartContract.getSupportersCount(campaign.id);
+            totalSupporters += supportersCount;
+        } catch (error) {
+            console.error('Error getting supporters count:', error);
+        }
     }
     
+    // Update total donations display in VND
+    const totalDonationsEl = document.getElementById('totalDonations');
+    if (totalDonationsEl) {
+        const totalVnd = window.smartContract.ethToVndDisplay(totalDonations);
+        totalDonationsEl.textContent = formatVndShort(parseFloat(totalVnd.replace(/\./g, '').replace(/,/g, ''))) + ' VND';
+    }
+    
+    // Update total supporters display
     const totalSupportersEl = document.getElementById('totalSupporters');
     if (totalSupportersEl) {
-        totalSupportersEl.textContent = formatNumber(totalSupporters);
+        totalSupportersEl.textContent = totalSupporters.toLocaleString('vi-VN');
     }
+}
+
+// Format large VND numbers to short format (1M, 20M, etc)
+function formatVndShort(amount) {
+    if (amount >= 1000000000) {
+        return (amount / 1000000000).toFixed(1).replace('.0', '') + 'B';
+    } else if (amount >= 1000000) {
+        return (amount / 1000000).toFixed(1).replace('.0', '') + 'M';
+    } else if (amount >= 1000) {
+        return (amount / 1000).toFixed(1).replace('.0', '') + 'K';
+    }
+    return amount.toLocaleString('vi-VN');
 }
 
 function loadBlockchainStats() {

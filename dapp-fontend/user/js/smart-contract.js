@@ -17,6 +17,11 @@ class SmartContract {
             blockExplorerUrls: ['https://evmtestnet.confluxscan.io']
         };
         
+        // Exchange rate
+        this.ethToVnd = 0;
+        this.lastFetchTime = 0;
+        this.CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+        
         // Load ABI
         this.contractABI = null;
         this.contract = null;
@@ -24,6 +29,7 @@ class SmartContract {
         this.signer = null;
         
         this.loadABI();
+        this.getEthToVnd(); // Initialize exchange rate
     }
 
     async loadABI() {
@@ -34,6 +40,43 @@ class SmartContract {
         } catch (error) {
             console.error('Error loading ABI:', error);
         }
+    }
+
+    // Get ETH to VND exchange rate
+    async getEthToVnd() {
+        const now = Date.now();
+        // Use cached rate if still fresh
+        if (this.ethToVnd > 0 && (now - this.lastFetchTime) < this.CACHE_DURATION) {
+            return this.ethToVnd;
+        }
+        
+        try {
+            // Get ETH/USD rate from CoinGecko (free API, no key needed)
+            const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+            const data = await response.json();
+            const ethToUsd = data.ethereum.usd;
+            
+            // USD to VND rate (approximately 25,000 VND per USD)
+            const usdToVnd = 25000;
+            
+            this.ethToVnd = ethToUsd * usdToVnd;
+            this.lastFetchTime = now;
+            
+            console.log(`ETH/VND rate updated: ${this.ethToVnd.toLocaleString('vi-VN')} VND`);
+            return this.ethToVnd;
+        } catch (error) {
+            console.error('Error fetching exchange rate:', error);
+            // Fallback rate if API fails (approximately)
+            this.ethToVnd = 80000000; // ~80 million VND per ETH
+            return this.ethToVnd;
+        }
+    }
+
+    // Convert ETH to VND
+    ethToVndDisplay(ethAmount) {
+        if (!this.ethToVnd) return '';
+        const vnd = ethAmount * this.ethToVnd;
+        return vnd.toLocaleString('vi-VN');
     }
 
     async initialize(provider, signer) {
@@ -96,6 +139,9 @@ class SmartContract {
                 return [];
             }
             
+            // Ensure exchange rate is fetched
+            await this.getEthToVnd();
+            
             const campaigns = [];
             const nextId = await this.contract.nextCampaignId();
             
@@ -140,6 +186,9 @@ class SmartContract {
     }
 
     formatCampaign(campaign) {
+        const collectedEth = parseFloat(this.formatEther(campaign.collected));
+        const targetEth = parseFloat(this.formatEther(campaign.targetAmount));
+        
         return {
             id: campaign.id.toNumber(),
             creator: campaign.creator,
@@ -156,12 +205,11 @@ class SmartContract {
             updatedAt: campaign.updatedAt.toNumber(),
             beneficiary: campaign.beneficiary,
             active: campaign.active,
-            collectedEth: this.formatEther(campaign.collected),
-            targetEth: this.formatEther(campaign.targetAmount),
-            progress: this.calculateProgress(
-                parseFloat(this.formatEther(campaign.collected)),
-                parseFloat(this.formatEther(campaign.targetAmount))
-            ),
+            collectedEth: collectedEth,
+            targetEth: targetEth,
+            collectedVnd: this.ethToVndDisplay(collectedEth),
+            targetVnd: this.ethToVndDisplay(targetEth),
+            progress: this.calculateProgress(collectedEth, targetEth),
             daysLeft: this.calculateDaysLeft(campaign.endDate.toNumber())
         };
     }
