@@ -1,14 +1,13 @@
 // My Donations Page JavaScript
 let userDonations = [];
+let isInitialized = false;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Wait for wallet connection
-    if (!window.walletConnection || !window.walletConnection.isConnected) {
-        showEmptyState('Vui lòng kết nối ví để xem lịch sử quyên góp');
-        return;
-    }
+    // Wait a bit for wallet-connect.js to load
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    await loadUserDonations();
+    // Initialize the page
+    await initializePage();
     
     // Listen for wallet events
     window.addEventListener('walletConnected', () => {
@@ -23,6 +22,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         loadUserDonations();
     });
 });
+
+async function initializePage() {
+    if (isInitialized) return;
+    isInitialized = true;
+    
+    // Check if wallet is connected
+    if (window.walletConnection && window.walletConnection.isConnected) {
+        await loadUserDonations();
+    } else {
+        showEmptyState('Vui lòng kết nối ví để xem lịch sử quyên góp');
+    }
+}
 
 async function loadUserDonations() {
     const loadingState = document.getElementById('loadingState');
@@ -42,8 +53,15 @@ async function loadUserDonations() {
         }
         
         // Initialize contract if not already initialized
+        if (!window.smartContract) {
+            console.error('Smart contract not available');
+            showEmptyState('Lỗi: Smart contract không khả dụng');
+            return;
+        }
+        
         if (!window.smartContract.contract) {
             if (window.walletConnection && window.walletConnection.isConnected) {
+                console.log('Initializing smart contract...');
                 const provider = window.walletConnection.getProvider();
                 const signer = window.walletConnection.getSigner();
                 await window.smartContract.initialize(provider, signer);
@@ -54,7 +72,16 @@ async function loadUserDonations() {
         }
         
         const userAddress = window.walletConnection.getAccount();
+        console.log('User address:', userAddress);
+        
+        if (!userAddress) {
+            showEmptyState('Không thể lấy địa chỉ ví');
+            return;
+        }
+        
+        console.log('Getting user donations...');
         userDonations = await window.smartContract.getUserDonations(userAddress);
+        console.log('User donations found:', userDonations.length);
         
         // Hide loading
         if (loadingState) loadingState.style.display = 'none';
@@ -119,6 +146,10 @@ function createDonationCard(campaign, donation) {
     
     const imageUrl = campaign.media || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=200&fit=crop';
     
+    // Convert ETH to VND for display
+    const ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
+    const donationVnd = (parseFloat(donation.amountEth) * ethToVnd).toLocaleString('vi-VN');
+    
     col.innerHTML = `
         <div class="card border-0 shadow-sm h-100 hover-shadow-lg transition-all">
             <div class="position-relative">
@@ -133,19 +164,20 @@ function createDonationCard(campaign, donation) {
             </div>
             <div class="card-body">
                 <h6 class="card-title fw-bold mb-2 text-truncate-2">${campaign.title}</h6>
+                <p class="card-text text-muted small mb-3" style="height: 3em; overflow: hidden;">${campaign.description}</p>
                 
                 <div class="bg-light rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted small">Số tiền ủng hộ:</span>
-                        <strong class="text-primary">${donation.amountEth} ETH</strong>
+                        <strong class="text-primary">${donationVnd} VND</strong>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted small">Thời gian:</span>
-                        <small>${window.smartContract.formatDate(donation.timestamp)}</small>
+                        <small>${window.smartContract.formatTimestamp ? window.smartContract.formatTimestamp(donation.timestamp) : new Date(donation.timestamp * 1000).toLocaleDateString('vi-VN')}</small>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small">Block:</span>
-                        <small class="font-monospace">#${donation.blockNumber}</small>
+                        <span class="text-muted small">Địa điểm:</span>
+                        <small>${campaign.location || 'Chưa xác định'}</small>
                     </div>
                 </div>
                 
@@ -169,10 +201,10 @@ function createDonationCard(campaign, donation) {
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="https://etherscan.io/tx/${donation.txHash}" 
+                        <a href="https://evmtestnet.confluxscan.io/tx/${donation.txHash}" 
                            target="_blank"
                            class="btn btn-sm btn-outline-success w-100">
-                            <i class="fas fa-external-link-alt me-1"></i>Etherscan
+                            <i class="fas fa-external-link-alt me-1"></i>ConfluxScan
                         </a>
                     </div>
                 </div>
@@ -203,16 +235,14 @@ async function calculateSummary() {
         });
     });
     
-    // Convert to VND
-    const totalVND = await window.smartContract.convertToVND(totalAmount);
+    // Convert ETH to VND for display (1 ETH = 50,000,000 VND)
+    const ethToVnd = 50000000;
+    const totalVND = totalAmount * ethToVnd;
     
-    // Calculate impact score (mock calculation)
-    const impactScore = Math.floor(totalAmount * 100);
-    
-    updateSummary(totalVND, totalDonations, campaignsSet.size, impactScore);
+    updateSummary(totalVND, totalDonations, campaignsSet.size);
 }
 
-function updateSummary(totalAmount, donationCount, campaignCount, impactScore = 0) {
+function updateSummary(totalAmount, donationCount, campaignCount) {
     const totalDonationAmountEl = document.getElementById('totalDonationAmount');
     if (totalDonationAmountEl) {
         totalDonationAmountEl.textContent = totalAmount.toLocaleString('vi-VN') + ' VND';
@@ -227,11 +257,6 @@ function updateSummary(totalAmount, donationCount, campaignCount, impactScore = 
     if (campaignsSupportedEl) {
         campaignsSupportedEl.textContent = campaignCount.toLocaleString('vi-VN');
     }
-    
-    const impactScoreEl = document.getElementById('impactScore');
-    if (impactScoreEl) {
-        impactScoreEl.textContent = impactScore.toLocaleString('vi-VN');
-    }
 }
 
 function showEmptyState(message) {
@@ -241,13 +266,13 @@ function showEmptyState(message) {
     if (loadingState) loadingState.style.display = 'none';
     if (emptyState) {
         emptyState.classList.remove('d-none');
-        const messageEl = emptyState.querySelector('h4');
+        const messageEl = emptyState.querySelector('#emptyStateMessage');
         if (messageEl && message) {
             messageEl.textContent = message;
         }
     }
     
-    updateSummary(0, 0, 0, 0);
+    updateSummary(0, 0, 0);
 }
 
 function copyToClipboard(text) {
@@ -284,5 +309,29 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
+// Force reload donations function for debugging
+async function forceReloadDonations() {
+    console.log('Force reloading donations...');
+    console.log('Wallet connection:', window.walletConnection);
+    console.log('Smart contract:', window.smartContract);
+    
+    if (window.walletConnection) {
+        console.log('Wallet connected:', window.walletConnection.isConnected);
+        console.log('Account:', window.walletConnection.getAccount());
+    }
+    
+    // Reset the initialization flag
+    isInitialized = false;
+    
+    // Clear previous data
+    userDonations = [];
+    
+    // Reload
+    await initializePage();
+    
+    showAlert('Đã tải lại dữ liệu', 'info');
+}
+
 // Make functions global
 window.copyToClipboard = copyToClipboard;
+window.forceReloadDonations = forceReloadDonations;

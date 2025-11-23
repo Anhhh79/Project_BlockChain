@@ -264,7 +264,7 @@ async function loadSupporters() {
                 <td><strong class="text-primary">${donationVnd} VND</strong></td>
                 <td><small>${window.smartContract.formatTimestamp(donation.timestamp)}</small></td>
                 <td>
-                    <a href="https://etherscan.io/tx/${donation.txHash}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a href="https://evmtestnet.confluxscan.io/tx/${donation.txHash}" target="_blank" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-external-link-alt"></i>
                     </a>
                 </td>

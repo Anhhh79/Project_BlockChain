@@ -93,7 +93,7 @@
         <div class="container">
             <!-- Summary Cards -->
             <div class="row mb-4">
-                <div class="col-md-4 mb-3">
+                <div class="col-md-6 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body text-center">
                             <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
@@ -105,7 +105,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-6 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body text-center">
                             <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
@@ -114,18 +114,6 @@
                             </div>
                             <h3 class="fw-bold text-success mb-1" id="campaignsSupported">0</h3>
                             <p class="text-muted mb-0">Chiến dịch đã ủng hộ</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body text-center">
-                            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
-                                 style="width: 60px; height: 60px;">
-                                <i class="fas fa-trophy text-info fs-4"></i>
-                            </div>
-                            <h3 class="fw-bold text-info mb-1" id="impactScore">0</h3>
-                            <p class="text-muted mb-0">Điểm tác động</p>
                         </div>
                     </div>
                 </div>
@@ -180,10 +168,15 @@
                         <i class="fas fa-heart-broken text-muted" style="font-size: 4rem;"></i>
                     </div>
                     <h4 class="text-muted mb-3">Chưa có quyên góp nào</h4>
-                    <p class="text-muted mb-4">Hãy bắt đầu tạo ra sự khác biệt bằng cách ủng hộ các chiến dịch từ thiện</p>
-                    <a href="campaigns.html" class="btn btn-primary btn-lg">
-                        <i class="fas fa-heart me-2"></i>Khám phá chiến dịch
-                    </a>
+                    <p class="text-muted mb-4" id="emptyStateMessage">Hãy bắt đầu tạo ra sự khác biệt bằng cách ủng hộ các chiến dịch từ thiện</p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="campaigns.html" class="btn btn-primary">
+                            <i class="fas fa-heart me-2"></i>Khám phá chiến dịch
+                        </a>
+                        <button class="btn btn-outline-primary" onclick="forceReloadDonations()">
+                            <i class="fas fa-sync-alt me-2"></i>Thử lại
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Donations will be loaded here -->
