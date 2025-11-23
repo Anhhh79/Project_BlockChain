@@ -58,7 +58,6 @@
                             <i class="fas fa-user"></i>
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="profile.html">Hồ sơ</a></li>
                             <li><a class="dropdown-item" href="my-donations.html">Quyên góp của tôi</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" onclick="disconnectWallet()">Đăng xuất</a></li>
@@ -128,9 +127,9 @@
                         
                         <div class="d-flex align-items-center mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
-                            <span class="text-muted">Sapa, Lào Cai</span>
+                            <span class="text-muted" id="campaignLocation">Đang tải...</span>
                             <i class="fas fa-calendar text-muted me-2 ms-4"></i>
-                            <span class="text-muted">Còn 45 ngày</span>
+                            <span class="text-muted" id="campaignTimeLeft">Đang tải...</span>
                         </div>
                     </div>
                 </div>
@@ -214,11 +213,6 @@
                 <div class="col-12">
                     <ul class="nav nav-pills justify-content-center mb-5" id="campaignTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="story-tab" data-bs-toggle="pill" data-bs-target="#story" type="button" role="tab">
-                                <i class="fas fa-book me-2"></i>Câu chuyện
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="supporters-tab" data-bs-toggle="pill" data-bs-target="#supporters" type="button" role="tab">
                                 <i class="fas fa-users me-2"></i>Người ủng hộ (<span id="supportersTabCount">1,456</span>)
                             </button>
@@ -236,66 +230,6 @@
                     </ul>
 
                     <div class="tab-content" id="campaignTabsContent">
-                        <!-- Story Tab -->
-                        <div class="tab-pane fade show active" id="story" role="tabpanel">
-                            <div class="row justify-content-center">
-                                <div class="col-lg-8">
-                                    <div class="bg-white p-5 rounded-3 shadow-sm">
-                                        <h3 class="fw-bold mb-4">Câu chuyện chiến dịch</h3>
-                                        <div class="campaign-story">
-                                            <p class="mb-4">
-                                                Tại vùng núi cao Sapa, Lào Cai, có hơn 200 trẻ em đang phải đi bộ hơn 10km mỗi ngày để đến trường. Con đường gồ ghề, thời tiết khắc nghiệt khiến nhiều em phải bỏ học.
-                                            </p>
-                                            
-                                            <h5 class="fw-bold mb-3">Tình trạng hiện tại</h5>
-                                            <ul class="mb-4">
-                                                <li>200+ trẻ em không có trường học gần nhà</li>
-                                                <li>Phải đi bộ 10km mỗi ngày qua địa hình hiểm trở</li>
-                                                <li>Thời tiết khắc nghiệt, mùa đông có tuyết rơi</li>
-                                                <li>Nhiều em phải bỏ học do quá xa và nguy hiểm</li>
-                                            </ul>
-
-                                            <h5 class="fw-bold mb-3">Kế hoạch xây dựng</h5>
-                                            <ul class="mb-4">
-                                                <li>Xây dựng 1 trường học với 6 phòng học</li>
-                                                <li>Trang bị đầy đủ bàn ghế và thiết bị học tập</li>
-                                                <li>Xây dựng nhà ăn cho học sinh</li>
-                                                <li>Tạo sân chơi và khu vui chơi cho trẻ em</li>
-                                            </ul>
-
-                                            <h5 class="fw-bold mb-3">Dự toán chi phí</h5>
-                                            <div class="table-responsive mb-4">
-                                                <table class="table table-striped">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td>Vật liệu xây dựng</td>
-                                                            <td class="text-end fw-bold">1,500,000,000 VND</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Nhân công</td>
-                                                            <td class="text-end fw-bold">800,000,000 VND</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Trang thiết bị</td>
-                                                            <td class="text-end fw-bold">500,000,000 VND</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Chi phí khác</td>
-                                                            <td class="text-end fw-bold">200,000,000 VND</td>
-                                                        </tr>
-                                                        <tr class="table-primary">
-                                                            <td class="fw-bold">Tổng cộng</td>
-                                                            <td class="text-end fw-bold">3,000,000,000 VND</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Supporters Tab -->
                         <div class="tab-pane fade" id="supporters" role="tabpanel">
                             <div class="row justify-content-center">

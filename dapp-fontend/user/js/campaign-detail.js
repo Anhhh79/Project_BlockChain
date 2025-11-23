@@ -89,6 +89,12 @@ async function renderCampaignInfo() {
     document.getElementById('supportersCount').textContent = supportersCount;
     document.getElementById('supportersTabCount').textContent = supportersCount;
     
+    // Update location and days left from blockchain data
+    document.getElementById('campaignLocation').textContent = currentCampaign.location || 'Chưa xác định';
+    document.getElementById('campaignTimeLeft').textContent = currentCampaign.active ? 
+        (currentCampaign.daysLeft > 0 ? `Còn ${currentCampaign.daysLeft} ngày` : 'Sắp kết thúc') : 
+        'Đã kết thúc';
+    
     document.getElementById('daysLeft').textContent = currentCampaign.daysLeft;
     
     // Update like button
