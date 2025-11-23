@@ -58,6 +58,8 @@ async function loadCampaignDetail() {
         // Load tabs content
         await loadSupporters();
         await loadComments();
+        await loadDisbursements();
+        await loadDisbursements();
         
     } catch (error) {
         console.error('Error loading campaign:', error);
@@ -69,6 +71,9 @@ async function renderCampaignInfo() {
     // Update title and description
     document.getElementById('campaignTitle').textContent = currentCampaign.title;
     document.getElementById('campaignDescription').textContent = currentCampaign.description;
+    
+    // Update campaign images from blockchain
+    updateCampaignImages();
     
     // Update stats
     document.getElementById('totalRaised').textContent = currentCampaign.collectedEth + ' ETH';
@@ -463,10 +468,227 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
+function updateCampaignImages() {
+    if (!currentCampaign || !currentCampaign.media) {
+        console.warn('No media found for campaign');
+        return;
+    }
+    
+    // Parse media URLs from blockchain (expecting comma-separated URLs or single URL)
+    let imageUrls = [];
+    
+    if (currentCampaign.media.trim()) {
+        // Split by comma if multiple URLs, otherwise use single URL
+        imageUrls = currentCampaign.media.split(',').map(url => url.trim()).filter(url => url);
+        
+        // If no valid URLs found, use a default fallback
+        if (imageUrls.length === 0) {
+            imageUrls = ['https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=800&h=400&fit=crop&auto=format&q=80'];
+        }
+    } else {
+        // Use default image if no media URL from blockchain
+        imageUrls = ['https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=800&h=400&fit=crop&auto=format&q=80'];
+    }
+    
+    // Update carousel indicators
+    const indicators = document.querySelector('#campaignCarousel .carousel-indicators');
+    if (indicators) {
+        indicators.innerHTML = '';
+        imageUrls.forEach((_, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.setAttribute('data-bs-target', '#campaignCarousel');
+            button.setAttribute('data-bs-slide-to', index.toString());
+            if (index === 0) {
+                button.classList.add('active');
+                button.setAttribute('aria-current', 'true');
+            }
+            button.setAttribute('aria-label', `Slide ${index + 1}`);
+            indicators.appendChild(button);
+        });
+    }
+    
+    // Update carousel items
+    const carouselInner = document.querySelector('#campaignCarousel .carousel-inner');
+    if (carouselInner) {
+        carouselInner.innerHTML = '';
+        imageUrls.forEach((imageUrl, index) => {
+            const carouselItem = document.createElement('div');
+            carouselItem.className = 'carousel-item' + (index === 0 ? ' active' : '');
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.className = 'd-block w-100';
+            img.alt = `${currentCampaign.title} - Hình ${index + 1}`;
+            img.style.cssText = 'height: 400px; object-fit: cover; cursor: pointer;';
+            
+            // Add click event to open modal for full-size image
+            img.addEventListener('click', () => {
+                const modal = document.getElementById('imageModal');
+                const modalImage = document.getElementById('modalImage');
+                if (modal && modalImage) {
+                    modalImage.src = imageUrl;
+                    modalImage.alt = img.alt;
+                    const bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                }
+            });
+            
+            // Handle image load error
+            img.addEventListener('error', () => {
+                console.warn('Failed to load image:', imageUrl);
+                img.src = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=800&h=400&fit=crop&auto=format&q=80';
+                img.alt = 'Hình ảnh mặc định';
+            });
+            
+            carouselItem.appendChild(img);
+            carouselInner.appendChild(carouselItem);
+        });
+        
+        // Hide carousel controls if only one image
+        const prevControl = document.querySelector('#campaignCarousel .carousel-control-prev');
+        const nextControl = document.querySelector('#campaignCarousel .carousel-control-next');
+        
+        if (imageUrls.length <= 1) {
+            if (prevControl) prevControl.style.display = 'none';
+            if (nextControl) nextControl.style.display = 'none';
+            if (indicators) indicators.style.display = 'none';
+        } else {
+            if (prevControl) prevControl.style.display = 'block';
+            if (nextControl) nextControl.style.display = 'block';
+            if (indicators) indicators.style.display = 'flex';
+        }
+    }
+    
+    console.log('Campaign images updated from blockchain:', imageUrls);
+}
+
+async function loadDisbursements() {
+    try {
+        const disbursements = await window.smartContract.getDisbursements(campaignId);
+        displayDisbursements(disbursements);
+    } catch (error) {
+        console.error('Error loading disbursements:', error);
+    }
+}
+
+function displayDisbursements(disbursements) {
+    const timeline = document.querySelector('.timeline');
+    if (!timeline) return;
+    
+    // Clear existing timeline items
+    timeline.innerHTML = '';
+    
+    if (disbursements.length === 0) {
+        timeline.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-info-circle fs-4 mb-3 d-block"></i>
+                <p class="mb-0">Chưa có cập nhật tiến độ nào.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort disbursements by timestamp (newest first)
+    disbursements.sort((a, b) => b.timestamp - a.timestamp);
+    
+    disbursements.forEach((disbursement, index) => {
+        const timelineItem = document.createElement('div');
+        timelineItem.className = 'timeline-item mb-4';
+        
+        const date = new Date(disbursement.timestamp * 1000);
+        const timeAgo = getTimeAgo(disbursement.timestamp);
+        
+        timelineItem.innerHTML = `
+            <div class="timeline-marker bg-${index % 2 === 0 ? 'primary' : 'success'}"></div>
+            <div class="timeline-content">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="fw-bold mb-0">Giải ngân: ${disbursement.amountEth} ETH</h6>
+                    <small class="text-muted">${timeAgo}</small>
+                </div>
+                <p class="text-muted mb-2">
+                    <strong>Người nhận:</strong> ${disbursement.recipient.substring(0, 6)}...${disbursement.recipient.substring(disbursement.recipient.length - 4)}
+                </p>
+                ${disbursement.note ? `<p class="text-muted mb-2">${disbursement.note}</p>` : ''}
+                ${disbursement.proofImage && disbursement.proofImage.trim() ? createDisbursementImages(disbursement.proofImage) : ''}
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-link me-1"></i>
+                        <a href="https://evm.confluxscan.net/tx/${disbursement.txHash}" target="_blank" class="text-decoration-none">
+                            Xem giao dịch
+                        </a>
+                    </small>
+                </div>
+            </div>
+        `;
+        
+        timeline.appendChild(timelineItem);
+    });
+}
+
+function createDisbursementImages(proofImageUrls) {
+    if (!proofImageUrls || !proofImageUrls.trim()) {
+        return '';
+    }
+    
+    // Parse image URLs (comma-separated)
+    const imageUrls = proofImageUrls.split(',').map(url => url.trim()).filter(url => url);
+    
+    if (imageUrls.length === 0) {
+        return '';
+    }
+    
+    let imagesHtml = '<div class="d-flex gap-2 flex-wrap mt-2">';
+    
+    imageUrls.forEach((imageUrl, index) => {
+        imagesHtml += `
+            <img src="${imageUrl}" 
+                 alt="Hình chứng minh ${index + 1}" 
+                 class="rounded disbursement-image" 
+                 style="width: 120px; height: 80px; object-fit: cover; cursor: pointer;"
+                 onclick="openImageModal('${imageUrl}', 'Hình chứng minh giải ngân')"
+                 onerror="this.src='https://via.placeholder.com/120x80?text=Lỗi+ảnh'">
+        `;
+    });
+    
+    imagesHtml += '</div>';
+    return imagesHtml;
+}
+
+function getTimeAgo(timestamp) {
+    const now = Date.now() / 1000;
+    const diffSeconds = now - timestamp;
+    
+    if (diffSeconds < 60) {
+        return 'Vừa xong';
+    } else if (diffSeconds < 3600) {
+        const minutes = Math.floor(diffSeconds / 60);
+        return `${minutes} phút trước`;
+    } else if (diffSeconds < 86400) {
+        const hours = Math.floor(diffSeconds / 3600);
+        return `${hours} giờ trước`;
+    } else {
+        const days = Math.floor(diffSeconds / 86400);
+        return `${days} ngày trước`;
+    }
+}
+
+function openImageModal(imageUrl, altText) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    if (modal && modalImage) {
+        modalImage.src = imageUrl;
+        modalImage.alt = altText || 'Hình ảnh';
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+}
+
 // Make functions global
 window.openDonationModal = openDonationModal;
 window.processDonation = processDonation;
 window.submitComment = submitComment;
 window.shareCampaign = shareCampaign;
+window.openImageModal = openImageModal;
 window.submitReport = submitReport;
 window.loadMoreComments = loadMoreComments;

@@ -273,7 +273,9 @@ class SmartContract {
                     amountEth: this.formatEther(disbursement.amount),
                     timestamp: disbursement.timestamp.toNumber(),
                     blockNumber: disbursement.blockNumber.toNumber(),
-                    txHash: disbursement.txHash
+                    txHash: disbursement.txHash,
+                    proofImage: disbursement.proofImage,
+                    note: disbursement.note
                 });
             }
             
