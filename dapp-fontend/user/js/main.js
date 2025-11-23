@@ -1,343 +1,324 @@
-// Main JavaScript for QuyTuThien Home Page
-class QuyTuThienApp {
-    constructor() {
-        this.campaigns = [];
-        this.stats = {
-            totalCampaigns: 0,
-            totalDonated: 0,
-            totalSupporters: 0
-        };
-        this.init();
-    }
+// Main JavaScript for index.html
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadFeaturedCampaigns();
+    loadBlockchainStats();
+    
+    // Listen for wallet connection
+    window.addEventListener('walletConnected', () => {
+        loadFeaturedCampaigns();
+    });
+});
 
-    async init() {
-        await this.loadStats();
-        await this.loadFeaturedCampaigns();
-        this.updateStatsDisplay();
-        this.setupEventListeners();
-        this.startRealTimeUpdates();
-    }
-
-    async loadStats() {
-        try {
-            // Load real stats from blockchain
-            if (window.smartContract) {
-                await window.smartContract.initializeContract();
-                const campaignCount = await window.smartContract.getCampaignCount();
-                this.stats.totalCampaigns = campaignCount;
-                
-                // Calculate total donated from all campaigns
-                const campaigns = await window.smartContract.getAllCampaigns();
-                let totalDonated = 0;
-                let totalSupporters = 0;
-                const CFX_TO_VND = 70000000;
-                
-                campaigns.forEach(campaign => {
-                    const collectedCFX = parseFloat(campaign.collected);
-                    const collectedVND = collectedCFX * CFX_TO_VND;
-                    totalDonated += collectedVND;
-                    totalSupporters += campaign.supportersCount || 0;
-                });
-                
-                this.stats.totalDonated = totalDonated;
-                this.stats.totalSupporters = totalSupporters;
+async function loadFeaturedCampaigns() {
+    const container = document.getElementById('featuredCampaigns');
+    if (!container) return;
+    
+    try {
+        // Show loading
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
+                </div>
+                <p class="text-muted mt-3">Đang tải chiến dịch...</p>
+            </div>
+        `;
+        
+        // Initialize contract if not already initialized
+        if (!window.smartContract.contract) {
+            if (window.walletConnection && window.walletConnection.isConnected) {
+                const provider = window.walletConnection.getProvider();
+                const signer = window.walletConnection.getSigner();
+                await window.smartContract.initialize(provider, signer);
+            } else {
+                // Use public Conflux eSpace Testnet RPC for read-only access
+                const provider = new ethers.providers.JsonRpcProvider('https://evmtestnet.confluxrpc.com');
+                await window.smartContract.initialize(provider, provider);
             }
-        } catch (error) {
-            console.error('Error loading stats:', error);
         }
-    }
-
-    async loadFeaturedCampaigns() {
-        try {
-            // Load featured campaigns from blockchain
-            if (window.smartContract) {
-                await window.smartContract.initializeContract();
-                const allCampaigns = await window.smartContract.getAllCampaigns();
-                
-                // Convert blockchain data and take top 3 campaigns
-                this.campaigns = allCampaigns.slice(0, 3).map(campaign => {
-                    const targetCFX = parseFloat(campaign.targetAmount);
-                    const collectedCFX = parseFloat(campaign.collected);
-                    const CFX_TO_VND = 70000000; // 1 CFX = 70M VND
-                    
-                    const targetVND = targetCFX * CFX_TO_VND;
-                    const raisedVND = collectedCFX * CFX_TO_VND;
-                    
-                    return {
-                        id: campaign.id,
-                        title: campaign.title,
-                        description: campaign.description,
-                        image: campaign.media || "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=250&fit=crop&auto=format&q=80",
-                        organizer: campaign.organizer || "Tổ chức từ thiện",
-                        targetAmount: targetVND,
-                        raisedAmount: raisedVND,
-                        supporters: campaign.supportersCount || 0,
-                        daysLeft: 30,
-                        location: campaign.location || "Việt Nam",
-                        isVerified: true,
-                        isUrgent: false,
-                        likes: campaign.likesCount || 0,
-                        organizerRole: "Người tổ chức"
-                    };
-                });
-            }
-            
-            this.renderFeaturedCampaigns();
-        } catch (error) {
-            console.error('Error loading campaigns:', error);
-            this.campaigns = [];
-            this.renderFeaturedCampaigns();
-        }
-    }
-
-    renderFeaturedCampaigns() {
-        const container = document.getElementById('featuredCampaigns');
-        if (!container) return;
-
-        // Check if there are campaigns
-        if (this.campaigns.length === 0) {
+        
+        // Get campaigns from smart contract
+        const campaigns = await window.smartContract.getAllCampaigns();
+        
+        if (campaigns.length === 0) {
             container.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Chưa có chiến dịch nào</h5>
-                    <p class="text-muted">Vui lòng kết nối ví và đợi dữ liệu từ blockchain</p>
+                    <p class="text-muted">Chưa có chiến dịch nào</p>
                 </div>
             `;
             return;
         }
         
-        container.innerHTML = this.campaigns.map(campaign => `
-            <div class="col-lg-4 col-md-6 mb-4 fade-in-up">
-                <div class="campaign-card bg-white rounded-3 shadow-sm h-100 position-relative hover-lift">
-                    ${campaign.isUrgent ? '<div class="position-absolute top-0 start-0 m-3"><span class="badge bg-danger">Cấp bách</span></div>' : ''}
-                    
-                    <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-3 like-btn" onclick="toggleLike(${campaign.id})">
-                        <i class="far fa-heart"></i>
-                        <span class="like-count">${this.formatNumber(campaign.likes)}</span>
-                    </button>
-                    
-                    <div class="campaign-image">
-                        <img src="${campaign.image}" alt="${campaign.title}" class="w-100 rounded-top-3" style="height: 200px; object-fit: cover;">
-                    </div>
-                    
-                    <div class="p-4">
-                        <h6 class="fw-bold mb-2 text-truncate-2">${campaign.title}</h6>
-                        <p class="text-muted small mb-3 text-truncate-3">${campaign.description}</p>
-                        
-                        ${campaign.organizer ? `
-                        <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px; min-width: 40px;">
-                                <i class="fas fa-user text-primary"></i>
-                            </div>
-                            <div class="flex-grow-1 overflow-hidden">
-                                <div class="fw-bold small text-truncate">${campaign.organizer}</div>
-                                <div class="text-muted" style="font-size: 0.75rem;">${campaign.organizerRole || 'Người phụ trách'}</div>
-                            </div>
-                            ${campaign.isVerified ? '<i class="fas fa-check-circle text-success" title="Đã xác thực"></i>' : ''}
-                        </div>
-                        ` : ''}
-                        
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <small class="text-muted">Tiến độ</small>
-                                <small class="fw-bold">${Math.round((campaign.raisedAmount / campaign.targetAmount) * 100)}%</small>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar" role="progressbar" style="width: ${(campaign.raisedAmount / campaign.targetAmount) * 100}%"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="row text-center mb-3">
-                            <div class="col-4">
-                                <h6 class="fw-bold text-primary mb-0">${this.formatCurrency(campaign.raisedAmount)}</h6>
-                                <small class="text-muted">Đã quyên góp</small>
-                            </div>
-                            <div class="col-4">
-                                <h6 class="fw-bold text-success mb-0">${this.formatNumber(campaign.supporters)}</h6>
-                                <small class="text-muted">Người ủng hộ</small>
-                            </div>
-                            <div class="col-4">
-                                <h6 class="fw-bold text-info mb-0">${campaign.daysLeft}</h6>
-                                <small class="text-muted">Ngày còn lại</small>
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex align-items-center mb-3">
-                            <i class="fas fa-map-marker-alt text-muted me-2"></i>
-                            <small class="text-muted">${campaign.location}</small>
-                        </div>
-                        
-                        <div class="d-grid">
-                            <a href="campaign-detail.html?id=${campaign.id}" class="btn btn-primary">
-                                <i class="fas fa-eye me-2"></i>Xem chi tiết
-                            </a>
-                        </div>
-                    </div>
-                </div>
+        // Filter active campaigns and sort by created date
+        const activeCampaigns = campaigns
+            .filter(c => c.active)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 6); // Get top 6
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        // Render campaigns
+        for (const campaign of activeCampaigns) {
+            const card = await createCampaignCard(campaign);
+            container.appendChild(card);
+        }
+        
+        // Update stats
+        updateHomeStats(campaigns);
+        
+    } catch (error) {
+        console.error('Error loading campaigns:', error);
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                <p class="text-danger">Lỗi khi tải dữ liệu</p>
+                <button class="btn btn-primary" onclick="loadFeaturedCampaigns()">Thử lại</button>
             </div>
-        `).join('');
-    }
-
-    updateStatsDisplay() {
-        // Update hero stats
-        this.updateElement('totalCampaigns', this.formatNumber(this.stats.totalCampaigns));
-        this.updateElement('totalDonated', this.formatCurrency(this.stats.totalDonated));
-        this.updateElement('totalSupporters', this.formatNumber(this.stats.totalSupporters));
-        
-        // Update footer stats (with default values if not present)
-        this.updateElement('blockHeight', this.formatNumber(18456789));
-        this.updateElement('totalTx', this.formatNumber(1234567));
-        this.updateElement('gasPrice', '21 Gwei');
-    }
-
-    updateElement(id, value) {
-        const element = document.getElementById(id);
-        if (element) {
-            // Add animation
-            element.style.opacity = '0';
-            setTimeout(() => {
-                element.textContent = value;
-                element.style.opacity = '1';
-            }, 150);
-        }
-    }
-
-    formatNumber(num) {
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        }
-        if (num >= 1000) {
-            return (num / 1000).toFixed(0) + 'K';
-        }
-        return num.toLocaleString();
-    }
-
-    formatCurrency(amount) {
-        if (amount >= 1000000000) {
-            return (amount / 1000000000).toFixed(1) + 'B VND';
-        }
-        if (amount >= 1000000) {
-            return (amount / 1000000).toFixed(0) + 'M VND';
-        }
-        if (amount >= 1000) {
-            return (amount / 1000).toFixed(0) + 'K VND';
-        }
-        return new Intl.NumberFormat('vi-VN').format(amount) + ' VND';
-    }
-
-    setupEventListeners() {
-        // Scroll animations
-        this.setupScrollAnimations();
-        
-        // Search functionality
-        const searchForm = document.querySelector('.hero-section form');
-        if (searchForm) {
-            searchForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const searchTerm = e.target.querySelector('input').value;
-                window.location.href = `campaigns.html?search=${encodeURIComponent(searchTerm)}`;
-            });
-        }
-    }
-
-    setupScrollAnimations() {
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('fade-in-up');
-                }
-            });
-        }, observerOptions);
-
-        // Observe all campaign cards
-        document.querySelectorAll('.campaign-card').forEach(card => {
-            observer.observe(card);
-        });
-    }
-
-    startRealTimeUpdates() {
-        // Update stats every 30 seconds
-        setInterval(async () => {
-            await this.loadStats();
-            this.updateStatsDisplay();
-        }, 30000);
+        `;
     }
 }
 
-// Global functions
-window.toggleLike = async (campaignId) => {
-    const likeBtn = document.querySelector(`[onclick="toggleLike(${campaignId})"]`);
-    const heartIcon = likeBtn.querySelector('i');
-    const likeCount = likeBtn.querySelector('.like-count');
+async function createCampaignCard(campaign) {
+    const col = document.createElement('div');
+    col.className = 'col-lg-4 col-md-6 mb-4 fade-in-up';
     
-    // Toggle like state
-    const isLiked = heartIcon.classList.contains('fas');
-    if (isLiked) {
-        heartIcon.classList.remove('fas');
-        heartIcon.classList.add('far');
-        likeBtn.classList.remove('liked');
-        const currentCount = parseInt(likeCount.textContent.replace('K', '').replace('M', '')) || 0;
-        likeCount.textContent = app.formatNumber(currentCount - 1);
+    // Get additional data
+    const supportersCount = await window.smartContract.getSupportersCount(campaign.id);
+    const likesCount = await window.smartContract.getLikesCount(campaign.id);
+    
+    // Determine badge
+    let badge = '';
+    if (campaign.daysLeft < 7) {
+        badge = '<span class="badge bg-danger">Sắp kết thúc</span>';
+    } else if (campaign.progress >= 75) {
+        badge = '<span class="badge bg-success">Gần đạt mục tiêu</span>';
     } else {
-        heartIcon.classList.remove('far');
-        heartIcon.classList.add('fas');
-        likeBtn.classList.add('liked');
-        const currentCount = parseInt(likeCount.textContent.replace('K', '').replace('M', '')) || 0;
-        likeCount.textContent = app.formatNumber(currentCount + 1);
+        badge = '<span class="badge bg-primary">Đang diễn ra</span>';
     }
     
-    // Add animation
-    likeBtn.classList.add('success-animation');
-    setTimeout(() => {
-        likeBtn.classList.remove('success-animation');
-    }, 600);
+    // Get image from media or use default
+    const imageUrl = campaign.media || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=250&fit=crop';
     
-    console.log(isLiked ? 'Unliked campaign ' + campaignId : 'Liked campaign ' + campaignId);
-};
-
-// Initialize app when DOM is loaded
-let app;
-document.addEventListener('DOMContentLoaded', () => {
-    app = new QuyTuThienApp();
-});
-
-// Add CSS for animations
-const style = document.createElement('style');
-style.textContent = `
-    .fade-in-up {
-        animation: fadeInUp 0.6s ease-out forwards;
-        opacity: 0;
-        transform: translateY(30px);
-    }
+    col.innerHTML = `
+        <div class="campaign-card bg-white rounded-3 shadow-sm h-100 hover-lift">
+            <div class="position-relative">
+                ${badge ? `<div class="position-absolute top-0 start-0 m-3 z-3">${badge}</div>` : ''}
+                <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-3 z-3 like-btn" data-campaign-id="${campaign.id}">
+                    <i class="far fa-heart"></i>
+                    <span class="like-count">${likesCount}</span>
+                </button>
+                <img src="${imageUrl}" alt="${campaign.title}" 
+                     class="w-100 rounded-top-3" 
+                     style="height: 200px; object-fit: cover;"
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23e9ecef%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%236c757d%22 font-family=%22Arial%22 font-size=%2220%22 text-anchor=%22middle%22 x=%22200%22 y=%22135%22%3ECampaign Image%3C/text%3E%3C/svg%3E'">
+            </div>
+            <div class="p-4">
+                <h6 class="fw-bold mb-2 text-truncate-2">${campaign.title}</h6>
+                <p class="text-muted small mb-3 text-truncate-3">${campaign.description}</p>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted">Tiến độ</small>
+                        <small class="fw-bold text-primary">${campaign.progress}%</small>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: ${campaign.progress}%"></div>
+                    </div>
+                </div>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <h6 class="fw-bold text-primary mb-0 small">${campaign.collectedEth}</h6>
+                        <small class="text-muted" style="font-size: 0.7rem;">ETH</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="fw-bold text-success mb-0 small">${supportersCount}</h6>
+                        <small class="text-muted" style="font-size: 0.7rem;">Người ủng hộ</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="fw-bold text-info mb-0 small">${campaign.daysLeft}</h6>
+                        <small class="text-muted" style="font-size: 0.7rem;">Ngày còn lại</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                    <small class="text-muted">${campaign.location}</small>
+                </div>
+                
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <small class="text-success">Đã xác minh</small>
+                </div>
+                
+                <div class="d-grid">
+                    <a href="campaign-detail.html?id=${campaign.id}" class="btn btn-primary">
+                        <i class="fas fa-eye me-2"></i>Xem chi tiết
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
     
-    @keyframes fadeInUp {
-        to {
-            opacity: 1;
-            transform: translateY(0);
+    // Add like button listener
+    const likeBtn = col.querySelector('.like-btn');
+    likeBtn.addEventListener('click', (e) => handleLike(e, campaign.id));
+    
+    // Check if already liked
+    if (window.walletConnection && window.walletConnection.isConnected) {
+        const isLiked = await window.smartContract.isLiked(campaign.id, window.walletConnection.account);
+        if (isLiked) {
+            likeBtn.classList.add('liked');
+            likeBtn.querySelector('i').classList.remove('far');
+            likeBtn.querySelector('i').classList.add('fas');
         }
     }
     
-    .success-animation {
-        animation: successPulse 0.6s ease-in-out;
+    return col;
+}
+
+async function handleLike(event, campaignId) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const btn = event.currentTarget;
+    
+    if (!window.walletConnection || !window.walletConnection.isConnected) {
+        showAlert('Vui lòng kết nối ví để thích chiến dịch', 'warning');
+        return;
     }
     
-    @keyframes successPulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
+    try {
+        btn.disabled = true;
+        const isLiked = btn.classList.contains('liked');
+        
+        if (isLiked) {
+            const result = await window.smartContract.unlike(campaignId);
+            if (result.success) {
+                btn.classList.remove('liked');
+                btn.querySelector('i').classList.remove('fas');
+                btn.querySelector('i').classList.add('far');
+                
+                const countSpan = btn.querySelector('.like-count');
+                const currentCount = parseInt(countSpan.textContent);
+                countSpan.textContent = currentCount - 1;
+                
+                showAlert('Đã bỏ thích', 'success');
+            }
+        } else {
+            const result = await window.smartContract.like(campaignId);
+            if (result.success) {
+                btn.classList.add('liked');
+                btn.querySelector('i').classList.remove('far');
+                btn.querySelector('i').classList.add('fas');
+                
+                const countSpan = btn.querySelector('.like-count');
+                const currentCount = parseInt(countSpan.textContent);
+                countSpan.textContent = currentCount + 1;
+                
+                showAlert('Đã thích chiến dịch', 'success');
+            }
+        }
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        showAlert('Lỗi khi thực hiện: ' + error.message, 'danger');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function updateHomeStats(campaigns) {
+    // Total campaigns
+    const totalCampaignsEl = document.getElementById('totalCampaigns');
+    if (totalCampaignsEl) {
+        totalCampaignsEl.textContent = campaigns.length.toLocaleString('vi-VN');
     }
     
-    .hover-lift {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    // Total donated
+    let totalDonated = 0;
+    for (const campaign of campaigns) {
+        totalDonated += parseFloat(campaign.collectedEth);
     }
     
-    .hover-lift:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    const totalDonatedEl = document.getElementById('totalDonated');
+    if (totalDonatedEl) {
+        // Convert to VND (mock rate)
+        const vnd = await window.smartContract.convertToVND(totalDonated);
+        totalDonatedEl.textContent = formatNumber(vnd) + ' VND';
     }
-`;
-document.head.appendChild(style);
+    
+    // Total supporters (unique)
+    let totalSupporters = 0;
+    for (const campaign of campaigns) {
+        const count = await window.smartContract.getSupportersCount(campaign.id);
+        totalSupporters += count;
+    }
+    
+    const totalSupportersEl = document.getElementById('totalSupporters');
+    if (totalSupportersEl) {
+        totalSupportersEl.textContent = formatNumber(totalSupporters);
+    }
+}
+
+function loadBlockchainStats() {
+    // Mock blockchain stats - replace with real data
+    const stats = {
+        blockHeight: Math.floor(Math.random() * 1000000) + 18000000,
+        totalTx: Math.floor(Math.random() * 100000) + 1200000,
+        gasPrice: Math.floor(Math.random() * 30) + 10
+    };
+    
+    const blockHeightEl = document.getElementById('blockHeight');
+    if (blockHeightEl) {
+        blockHeightEl.textContent = stats.blockHeight.toLocaleString('vi-VN');
+    }
+    
+    const totalTxEl = document.getElementById('totalTx');
+    if (totalTxEl) {
+        totalTxEl.textContent = stats.totalTx.toLocaleString('vi-VN');
+    }
+    
+    const gasPriceEl = document.getElementById('gasPrice');
+    if (gasPriceEl) {
+        gasPriceEl.textContent = stats.gasPrice + ' Gwei';
+    }
+}
+
+function formatNumber(num) {
+    if (num >= 1000000000) {
+        return (num / 1000000000).toFixed(1) + 'B';
+    } else if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 100px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.setAttribute('role', 'alert');
+    
+    const icon = {
+        'success': 'fa-check-circle',
+        'danger': 'fa-exclamation-circle',
+        'warning': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle'
+    }[type] || 'fa-info-circle';
+    
+    alertDiv.innerHTML = `
+        <i class="fas ${icon} me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}

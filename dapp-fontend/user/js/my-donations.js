@@ -1,196 +1,187 @@
-// My Donations Page Handler
-// Use unique variable names to avoid conflicts with other scripts
-var myDonationsAccount = null;
-var myDonationsAll = [];
-var myDonationsFiltered = [];
+// My Donations Page JavaScript
+let userDonations = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('My Donations page loaded');
-    
-    // Wait a bit longer for wallet-connect.js to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check wallet connection
-    if (window.walletConnection) {
-        myDonationsAccount = window.walletConnection.getCurrentAccount();
-        console.log('My Donations: Current account:', myDonationsAccount);
-    } else {
-        console.warn('walletConnection not available yet');
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait for wallet connection
+    if (!window.walletConnection || !window.walletConnection.isConnected) {
+        showEmptyState('Vui lòng kết nối ví để xem lịch sử quyên góp');
+        return;
     }
     
-    // Always load donations for demo
-    await loadMyDonations();
-    initializeFilters();
+    await loadUserDonations();
+    
+    // Listen for wallet events
+    window.addEventListener('walletConnected', () => {
+        loadUserDonations();
+    });
+    
+    window.addEventListener('walletDisconnected', () => {
+        showEmptyState('Vui lòng kết nối ví để xem lịch sử quyên góp');
+    });
+    
+    window.addEventListener('accountChanged', () => {
+        loadUserDonations();
+    });
 });
 
-// Load user's donations from blockchain
-async function loadMyDonations() {
+async function loadUserDonations() {
     const loadingState = document.getElementById('loadingState');
     const emptyState = document.getElementById('emptyState');
     const donationsList = document.getElementById('donationsList');
     
     try {
-        loadingState.classList.remove('d-none');
-        emptyState.classList.add('d-none');
-        
-        // Load donations from blockchain
-        if (window.smartContract && window.walletAddress) {
-            await window.smartContract.initializeContract();
-            const campaigns = await window.smartContract.getAllCampaigns();
-            const CFX_TO_VND = 70000000; // 1 CFX = 70M VND
-            
-            // Get donations from all campaigns for current user
-            for (const campaign of campaigns) {
-                if (campaign.donations && campaign.donations.length > 0) {
-                    const userDonations = campaign.donations.filter(
-                        d => d.donor.toLowerCase() === window.walletAddress.toLowerCase()
-                    );
-                    
-                    // Convert blockchain data to display format
-                    userDonations.forEach(donation => {
-                        const amountCFX = parseFloat(donation.amount);
-                        
-                        myDonationsAll.push({
-                            id: donation.donationId || `${campaign.id}-${donation.timestamp}`,
-                            campaignId: campaign.id,
-                            campaignTitle: campaign.title,
-                            campaignImage: campaign.media || "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=250&fit=crop&auto=format&q=80",
-                            amount: amountCFX * CFX_TO_VND,
-                            date: donation.timestamp ? new Date(donation.timestamp * 1000).toISOString() : new Date().toISOString(),
-                            status: 'success',
-                            txHash: donation.transactionHash || 'N/A',
-                            message: donation.message || '',
-                            impactMessage: `Bạn đã góp phần giúp đỡ ${campaign.title}`
-                        });
-                    });
+        // Show loading
+        if (loadingState) loadingState.style.display = 'block';
+        if (emptyState) emptyState.classList.add('d-none');
+        if (donationsList) {
+            Array.from(donationsList.children).forEach(child => {
+                if (child !== loadingState && child !== emptyState) {
+                    child.remove();
                 }
+            });
+        }
+        
+        // Initialize contract if not already initialized
+        if (!window.smartContract.contract) {
+            if (window.walletConnection && window.walletConnection.isConnected) {
+                const provider = window.walletConnection.getProvider();
+                const signer = window.walletConnection.getSigner();
+                await window.smartContract.initialize(provider, signer);
+            } else {
+                showEmptyState('Vui lòng kết nối ví để xem lịch sử quyên góp');
+                return;
             }
         }
         
-        console.log('Loaded donations from blockchain:', myDonationsAll.length);
+        const userAddress = window.walletConnection.getAccount();
+        userDonations = await window.smartContract.getUserDonations(userAddress);
         
-        if (myDonationsAll.length === 0) {
-            showEmptyState('no-donations');
+        // Hide loading
+        if (loadingState) loadingState.style.display = 'none';
+        
+        if (userDonations.length === 0) {
+            if (emptyState) emptyState.classList.remove('d-none');
+            updateSummary(0, 0, 0);
             return;
         }
         
-        // Update summary statistics
-        updateSummaryStats(myDonationsAll);
+        // Render donations
+        renderDonations();
         
-        // Display donations
-        myDonationsFiltered = [...myDonationsAll];
-        renderDonations(myDonationsFiltered);
+        // Update summary
+        calculateSummary();
         
     } catch (error) {
-        console.error('Error loading donations:', error);
-        showEmptyState('no-donations');
-    } finally {
-        loadingState.classList.add('d-none');
+        console.error('Error loading user donations:', error);
+        if (loadingState) loadingState.style.display = 'none';
+        showAlert('Lỗi khi tải dữ liệu quyên góp', 'danger');
     }
 }
 
-// Update summary statistics
-function updateSummaryStats(donations) {
-    const totalAmount = donations.reduce((sum, d) => sum + parseFloat(d.amount), 0);
-    const uniqueCampaigns = new Set(donations.map(d => d.campaignId)).size;
-    const totalImpact = donations.reduce((sum, d) => sum + d.impact, 0);
-    
-    document.getElementById('totalDonationAmount').textContent = formatCurrency(totalAmount);
-    document.getElementById('totalDonations').textContent = donations.length;
-    document.getElementById('campaignsSupported').textContent = uniqueCampaigns;
-    document.getElementById('impactScore').textContent = totalImpact;
-}
-
-// Render donations list
-function renderDonations(donations) {
+function renderDonations() {
     const donationsList = document.getElementById('donationsList');
-    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    if (!donationsList) return;
     
-    if (donations.length === 0) {
-        showEmptyState('no-results');
-        return;
-    }
-    
-    // Clear previous donations (except loading/empty states)
-    const cards = donationsList.querySelectorAll('.donation-card');
-    cards.forEach(card => card.remove());
-    
-    donations.forEach(donation => {
-        const card = createDonationCard(donation);
-        donationsList.appendChild(card);
+    // Clear existing donations (except loading and empty states)
+    Array.from(donationsList.children).forEach(child => {
+        if (child.id !== 'loadingState' && child.id !== 'emptyState') {
+            child.remove();
+        }
     });
     
-    // Show/hide load more button
-    if (donations.length >= 10) {
-        loadMoreContainer.classList.remove('d-none');
-    } else {
-        loadMoreContainer.classList.add('d-none');
-    }
+    // Sort by most recent
+    const sortedDonations = [];
+    userDonations.forEach(item => {
+        item.donations.forEach(donation => {
+            sortedDonations.push({
+                campaign: item.campaign,
+                donation: donation
+            });
+        });
+    });
+    
+    sortedDonations.sort((a, b) => b.donation.timestamp - a.donation.timestamp);
+    
+    // Render each donation
+    sortedDonations.forEach(item => {
+        const card = createDonationCard(item.campaign, item.donation);
+        donationsList.appendChild(card);
+    });
 }
 
-// Create donation card HTML
-function createDonationCard(donation) {
+function createDonationCard(campaign, donation) {
     const col = document.createElement('div');
-    col.className = 'col-12 donation-card mb-3';
+    col.className = 'col-md-6 col-lg-4 mb-4 fade-in-up';
     
-    const statusBadge = getStatusBadge(donation.status);
-    const categoryIcon = getCategoryIcon(donation.campaignCategory);
+    const statusBadge = campaign.active ? 
+        '<span class="badge bg-success">Đang hoạt động</span>' : 
+        '<span class="badge bg-secondary">Đã kết thúc</span>';
+    
+    const imageUrl = campaign.media || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=200&fit=crop';
     
     col.innerHTML = `
-        <div class="card border-0 shadow-sm hover-shadow-lg transition-all">
+        <div class="card border-0 shadow-sm h-100 hover-shadow-lg transition-all">
+            <div class="position-relative">
+                <img src="${imageUrl}" 
+                     class="card-img-top" 
+                     alt="${campaign.title}"
+                     style="height: 180px; object-fit: cover;"
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22180%22%3E%3Crect fill=%22%23e9ecef%22 width=%22400%22 height=%22180%22/%3E%3Ctext fill=%22%236c757d%22 font-family=%22Arial%22 font-size=%2218%22 text-anchor=%22middle%22 x=%22200%22 y=%22100%22%3ECampaign%3C/text%3E%3C/svg%3E'">
+                <div class="position-absolute top-0 end-0 m-2">
+                    ${statusBadge}
+                </div>
+            </div>
             <div class="card-body">
-                <div class="row align-items-center">
-                    <!-- Campaign Info -->
-                    <div class="col-lg-6 mb-3 mb-lg-0">
-                        <div class="d-flex align-items-start">
-                            <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
-                                <i class="${categoryIcon} text-primary fs-4"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h5 class="fw-bold mb-2">${donation.campaignTitle}</h5>
-                                <div class="d-flex flex-wrap gap-2 mb-2">
-                                    <span class="badge bg-light text-dark">
-                                        <i class="fas fa-tag me-1"></i>${donation.campaignCategory}
-                                    </span>
-                                    ${statusBadge}
-                                </div>
-                                <p class="text-muted small mb-0">
-                                    <i class="far fa-clock me-1"></i>
-                                    ${formatDate(donation.date)}
-                                </p>
-                            </div>
-                        </div>
+                <h6 class="card-title fw-bold mb-2 text-truncate-2">${campaign.title}</h6>
+                
+                <div class="bg-light rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Số tiền ủng hộ:</span>
+                        <strong class="text-primary">${donation.amountEth} ETH</strong>
                     </div>
-                    
-                    <!-- Amount & Impact -->
-                    <div class="col-lg-3 col-6 mb-3 mb-lg-0 text-center">
-                        <div class="border-start ps-3">
-                            <h4 class="fw-bold text-success mb-1">
-                                ${formatCurrency(donation.amount)}
-                            </h4>
-                            <p class="text-muted small mb-0">
-                                ≈ ${donation.amountCFX} CFX
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge bg-info">
-                                    <i class="fas fa-hand-holding-heart me-1"></i>
-                                    +${donation.impact} điểm tác động
-                                </span>
-                            </div>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Thời gian:</span>
+                        <small>${window.smartContract.formatDate(donation.timestamp)}</small>
                     </div>
-                    
-                    <!-- Actions -->
-                    <div class="col-lg-3 col-6 text-end">
-                        <a href="campaign-detail.html?id=${donation.campaignId}" 
-                           class="btn btn-outline-primary btn-sm mb-2 w-100">
-                            <i class="fas fa-eye me-1"></i>Xem chiến dịch
-                        </a>
-                        <button class="btn btn-outline-secondary btn-sm w-100" 
-                                onclick="viewTransaction('${donation.transactionHash}')">
-                            <i class="fas fa-receipt me-1"></i>Xem giao dịch
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Block:</span>
+                        <small class="font-monospace">#${donation.blockNumber}</small>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-1">Transaction Hash:</small>
+                    <div class="d-flex align-items-center gap-2">
+                        <code class="small flex-grow-1 text-truncate bg-light p-2 rounded">${donation.txHash}</code>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="copyToClipboard('${donation.txHash}')"
+                                title="Copy">
+                            <i class="fas fa-copy"></i>
                         </button>
                     </div>
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-6">
+                        <a href="campaign-detail.html?id=${campaign.id}" 
+                           class="btn btn-sm btn-outline-primary w-100">
+                            <i class="fas fa-eye me-1"></i>Xem chiến dịch
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="https://etherscan.io/tx/${donation.txHash}" 
+                           target="_blank"
+                           class="btn btn-sm btn-outline-success w-100">
+                            <i class="fas fa-external-link-alt me-1"></i>Etherscan
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-transparent border-top-0">
+                <div class="d-flex align-items-center text-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <small>Giao dịch đã xác thực trên blockchain</small>
                 </div>
             </div>
         </div>
@@ -199,132 +190,90 @@ function createDonationCard(donation) {
     return col;
 }
 
-// Get status badge HTML
-function getStatusBadge(status) {
-    const badges = {
-        'completed': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Hoàn thành</span>',
-        'pending': '<span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Đang xử lý</span>',
-        'active': '<span class="badge bg-info"><i class="fas fa-spinner me-1"></i>Đang hoạt động</span>'
-    };
-    return badges[status] || badges['completed'];
-}
-
-// Get category icon
-function getCategoryIcon(category) {
-    const icons = {
-        'Giáo dục': 'fas fa-graduation-cap',
-        'Y tế': 'fas fa-heartbeat',
-        'Nhà ở': 'fas fa-home',
-        'Môi trường': 'fas fa-leaf',
-        'Cứu trợ': 'fas fa-hands-helping'
-    };
-    return icons[category] || 'fas fa-heart';
-}
-
-// Format date
-function formatDate(date) {
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+async function calculateSummary() {
+    let totalAmount = 0;
+    let totalDonations = 0;
+    const campaignsSet = new Set();
     
-    if (diffDays === 0) {
-        return 'Hôm nay';
-    } else if (diffDays === 1) {
-        return 'Hôm qua';
-    } else if (diffDays < 7) {
-        return `${diffDays} ngày trước`;
-    } else if (diffDays < 30) {
-        const weeks = Math.floor(diffDays / 7);
-        return `${weeks} tuần trước`;
-    } else if (diffDays < 365) {
-        const months = Math.floor(diffDays / 30);
-        return `${months} tháng trước`;
-    } else {
-        return date.toLocaleDateString('vi-VN');
+    userDonations.forEach(item => {
+        campaignsSet.add(item.campaign.id);
+        item.donations.forEach(donation => {
+            totalAmount += parseFloat(donation.amountEth);
+            totalDonations++;
+        });
+    });
+    
+    // Convert to VND
+    const totalVND = await window.smartContract.convertToVND(totalAmount);
+    
+    // Calculate impact score (mock calculation)
+    const impactScore = Math.floor(totalAmount * 100);
+    
+    updateSummary(totalVND, totalDonations, campaignsSet.size, impactScore);
+}
+
+function updateSummary(totalAmount, donationCount, campaignCount, impactScore = 0) {
+    const totalDonationAmountEl = document.getElementById('totalDonationAmount');
+    if (totalDonationAmountEl) {
+        totalDonationAmountEl.textContent = totalAmount.toLocaleString('vi-VN') + ' VND';
+    }
+    
+    const totalDonationsEl = document.getElementById('totalDonations');
+    if (totalDonationsEl) {
+        totalDonationsEl.textContent = donationCount.toLocaleString('vi-VN');
+    }
+    
+    const campaignsSupportedEl = document.getElementById('campaignsSupported');
+    if (campaignsSupportedEl) {
+        campaignsSupportedEl.textContent = campaignCount.toLocaleString('vi-VN');
+    }
+    
+    const impactScoreEl = document.getElementById('impactScore');
+    if (impactScoreEl) {
+        impactScoreEl.textContent = impactScore.toLocaleString('vi-VN');
     }
 }
 
-// Initialize filters and search
-function initializeFilters() {
-    const searchInput = document.getElementById('searchInput');
-    const filterStatus = document.getElementById('filterStatus');
-    const sortBy = document.getElementById('sortBy');
-    
-    searchInput.addEventListener('input', applyFilters);
-    filterStatus.addEventListener('change', applyFilters);
-    sortBy.addEventListener('change', applyFilters);
-}
-
-// Apply filters and sorting
-function applyFilters() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('filterStatus').value;
-    const sortOption = document.getElementById('sortBy').value;
-    
-    // Filter donations
-    myDonationsFiltered = myDonationsAll.filter(donation => {
-        const matchesSearch = donation.campaignTitle.toLowerCase().includes(searchTerm) ||
-                            donation.campaignCategory.toLowerCase().includes(searchTerm);
-        const matchesStatus = statusFilter === 'all' || donation.status === statusFilter;
-        
-        return matchesSearch && matchesStatus;
-    });
-    
-    // Sort donations
-    myDonationsFiltered.sort((a, b) => {
-        switch (sortOption) {
-            case 'date-desc':
-                return b.date - a.date;
-            case 'date-asc':
-                return a.date - b.date;
-            case 'amount-desc':
-                return parseFloat(b.amount) - parseFloat(a.amount);
-            case 'amount-asc':
-                return parseFloat(a.amount) - parseFloat(b.amount);
-            default:
-                return 0;
-        }
-    });
-    
-    renderDonations(myDonationsFiltered);
-}
-
-// Show empty state
-function showEmptyState(type) {
+function showEmptyState(message) {
     const loadingState = document.getElementById('loadingState');
     const emptyState = document.getElementById('emptyState');
-    const donationsList = document.getElementById('donationsList');
     
-    loadingState.classList.add('d-none');
-    
-    if (type === 'no-wallet') {
-        emptyState.querySelector('h4').textContent = 'Vui lòng kết nối ví';
-        emptyState.querySelector('p').textContent = 'Bạn cần kết nối ví để xem lịch sử quyên góp';
-        emptyState.querySelector('.btn').innerHTML = '<i class="fas fa-wallet me-2"></i>Kết nối ví';
-        emptyState.querySelector('.btn').onclick = () => window.walletConnection.connectWallet();
-    } else if (type === 'error') {
-        emptyState.querySelector('h4').textContent = 'Đã có lỗi xảy ra';
-        emptyState.querySelector('p').textContent = 'Không thể tải lịch sử quyên góp. Vui lòng thử lại sau.';
-        emptyState.querySelector('.btn').innerHTML = '<i class="fas fa-redo me-2"></i>Thử lại';
-        emptyState.querySelector('.btn').onclick = () => location.reload();
+    if (loadingState) loadingState.style.display = 'none';
+    if (emptyState) {
+        emptyState.classList.remove('d-none');
+        const messageEl = emptyState.querySelector('h4');
+        if (messageEl && message) {
+            messageEl.textContent = message;
+        }
     }
     
-    emptyState.classList.remove('d-none');
+    updateSummary(0, 0, 0, 0);
 }
 
-// View transaction on blockchain explorer
-function viewTransaction(txHash) {
-    const explorerUrl = `https://evmtestnet.confluxscan.io/tx/${txHash}`;
-    window.open(explorerUrl, '_blank');
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('Đã sao chép vào clipboard', 'success');
+    }).catch(err => {
+        console.error('Error copying:', err);
+        showAlert('Lỗi khi sao chép', 'danger');
+    });
 }
 
-// Show alert
 function showAlert(message, type = 'info') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.style.cssText = 'top: 100px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.setAttribute('role', 'alert');
+    
+    const icon = {
+        'success': 'fa-check-circle',
+        'danger': 'fa-exclamation-circle',
+        'warning': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle'
+    }[type] || 'fa-info-circle';
+    
     alertDiv.innerHTML = `
-        ${message}
+        <i class="fas ${icon} me-2"></i>${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
@@ -335,22 +284,5 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
-// Format currency helper function
-function formatCurrency(amount) {
-    if (window.smartContract && window.smartContract.formatCurrency) {
-        return window.smartContract.formatCurrency(amount);
-    }
-    
-    // Fallback formatting
-    const num = parseFloat(amount);
-    if (num >= 1000000000) {
-        return (num / 1000000000).toFixed(1) + 'B VND';
-    } else if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M VND';
-    } else if (num >= 1000) {
-        return (num / 1000).toFixed(0) + 'K VND';
-    }
-    return num.toLocaleString('vi-VN') + ' VND';
-}
-
-console.log('My Donations module initialized');
+// Make functions global
+window.copyToClipboard = copyToClipboard;

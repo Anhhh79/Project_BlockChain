@@ -181,6 +181,43 @@
                     provider = new ethers.providers.Web3Provider(window.ethereum);
                     signer = provider.getSigner();
                     
+                    // Check if on correct network (Conflux eSpace Testnet - Chain ID: 71)
+                    const network = await provider.getNetwork();
+                    if (network.chainId !== 71) {
+                        try {
+                            // Try to switch to Conflux eSpace Testnet
+                            await window.ethereum.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: '0x47' }], // 71 in hex
+                            });
+                        } catch (switchError) {
+                            // This error code indicates that the chain has not been added to MetaMask
+                            if (switchError.code === 4902) {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [
+                                        {
+                                            chainId: '0x47',
+                                            chainName: 'Conflux eSpace Testnet',
+                                            nativeCurrency: {
+                                                name: 'CFX',
+                                                symbol: 'CFX',
+                                                decimals: 18
+                                            },
+                                            rpcUrls: ['https://evmtestnet.confluxrpc.com'],
+                                            blockExplorerUrls: ['https://evmtestnet.confluxscan.io']
+                                        }
+                                    ],
+                                });
+                            } else {
+                                throw switchError;
+                            }
+                        }
+                        // Reload provider after network change
+                        provider = new ethers.providers.Web3Provider(window.ethereum);
+                        signer = provider.getSigner();
+                    }
+                    
                     // Initialize contract with signer
                     if (CHARITY_ABI) {
                         charityContract = new ethers.Contract(CHARITY_CONTRACT_ADDRESS, CHARITY_ABI, signer);

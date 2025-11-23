@@ -1,121 +1,145 @@
-// Smart Contract Integration for User Page
-// Contract Address on Conflux eSpace Testnet (chain-71)
-const CONTRACT_ADDRESS = '0x7fF862bAD0628e1987037294C3c4bc3d6f367471';
-
-// Load full ABI from separate file
-let CHARITY_ABI = null;
-
-// Load ABI from charityAbi.json
-async function loadABI() {
-    try {
-        // Try to load from user folder first
-        let response = await fetch('../admin/charityAbi.json');
-        if (!response.ok) {
-            // Fallback to relative path
-            response = await fetch('./charityAbi.json');
-        }
-        const data = await response.json();
-        CHARITY_ABI = data.abi || data;
-        console.log('ABI loaded successfully');
-        return CHARITY_ABI;
-    } catch (error) {
-        console.error('Error loading ABI:', error);
-        // Use minimal ABI as fallback
-        CHARITY_ABI = [
-            "function donate(uint256 campaignId) external payable",
-            "function campaigns(uint256) external view returns (uint256 id, address creator, string title, string description, string media, string location, uint256 targetAmount, address campaignWallet, uint256 collected, uint256 totalDisbursed, uint256 createdAt, uint256 endDate, uint256 updatedAt, string beneficiary, bool active)",
-            "function nextCampaignId() external view returns (uint256)",
-            "function getCampaignDetails(uint256 id) external view returns (uint256 _id, string title, uint256 targetAmount, uint256 collected, uint256 totalDisbursed, uint256 endDate, bool active, bool expired)",
-            "function getDonationsCount(uint256 id) external view returns (uint256)",
-            "function getDonation(uint256 id, uint256 index) external view returns (address donor, uint256 amount, uint256 timestamp, uint256 blockNumber, bytes32 txHash)",
-            "function getSupportersCount(uint256 id) external view returns (uint256)",
-            "function getCommentsCount(uint256 id) external view returns (uint256)",
-            "function getComment(uint256 id, uint256 index) external view returns (address commenter, string text, uint256 timestamp, bool isAnonymous)",
-            "function like(uint256 campaignId) external",
-            "function unlike(uint256 campaignId) external",
-            "function liked(uint256, address) external view returns (bool)",
-            "function likesCount(uint256) external view returns (uint256)",
-            "function addComment(uint256 campaignId, string text, bool anon) external",
-            "event DonationReceived(uint256 indexed campaignId, address indexed donor, uint256 amount, bytes32 txHash)",
-            "event CampaignCreated(uint256 indexed id, address indexed creator)",
-            "event Liked(uint256 indexed campaignId, address indexed liker)",
-            "event Unliked(uint256 indexed campaignId, address indexed liker)",
-            "event CommentAdded(uint256 indexed campaignId, address indexed commenter, string text)"
-        ];
-        return CHARITY_ABI;
+// Smart Contract Configuration and Helper Functions
+class SmartContract {
+    constructor() {
+        // Contract address - Replace với địa chỉ contract đã deploy
+        this.contractAddress = '0x7fF862bAD0628e1987037294C3c4bc3d6f367471'; // Địa chỉ contract của bạn
+        
+        // Network configuration - Conflux eSpace Testnet
+        this.networkConfig = {
+            chainId: '0x47', // 71 in hex
+            chainName: 'Conflux eSpace Testnet',
+            nativeCurrency: {
+                name: 'CFX',
+                symbol: 'CFX',
+                decimals: 18
+            },
+            rpcUrls: ['https://evmtestnet.confluxrpc.com'],
+            blockExplorerUrls: ['https://evmtestnet.confluxscan.io']
+        };
+        
+        // Load ABI
+        this.contractABI = null;
+        this.contract = null;
+        this.provider = null;
+        this.signer = null;
+        
+        this.loadABI();
     }
-}
 
-let contract = null;
-let contractWithSigner = null;
-
-// Initialize contract when wallet is connected
-async function initializeContract() {
-    try {
-        // Load ABI first if not loaded
-        if (!CHARITY_ABI) {
-            await loadABI();
+    async loadABI() {
+        try {
+            const response = await fetch('charityAbi.json');
+            const data = await response.json();
+            this.contractABI = data.abi;
+        } catch (error) {
+            console.error('Error loading ABI:', error);
         }
+    }
 
-        if (!window.walletConnection || !window.walletConnection.getProvider()) {
-            console.log('Wallet not connected, waiting...');
+    async initialize(provider, signer) {
+        this.provider = provider;
+        this.signer = signer;
+        
+        if (!this.contractABI) {
+            await this.loadABI();
+        }
+        
+        this.contract = new ethers.Contract(
+            this.contractAddress,
+            this.contractABI,
+            signer
+        );
+        
+        return this.contract;
+    }
+
+    // Utility functions
+    formatEther(wei) {
+        return ethers.utils.formatEther(wei);
+    }
+
+    parseEther(ether) {
+        return ethers.utils.parseEther(ether.toString());
+    }
+
+    formatAddress(address) {
+        if (!address) return '';
+        return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    }
+
+    formatTimestamp(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString('vi-VN');
+    }
+
+    formatDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleDateString('vi-VN');
+    }
+
+    calculateDaysLeft(endDate) {
+        const now = Math.floor(Date.now() / 1000);
+        const secondsLeft = endDate - now;
+        return Math.ceil(secondsLeft / (24 * 60 * 60));
+    }
+
+    calculateProgress(collected, target) {
+        if (target === 0) return 0;
+        return Math.min(Math.round((collected / target) * 100), 100);
+    }
+
+    // Campaign functions
+    async getAllCampaigns() {
+        try {
+            if (!this.contract) {
+                console.error('Contract not initialized');
+                return [];
+            }
+            
+            const campaigns = [];
+            const nextId = await this.contract.nextCampaignId();
+            
+            for (let i = 1; i < nextId; i++) {
+                try {
+                    const campaign = await this.contract.campaigns(i);
+                    if (campaign.id.toNumber() !== 0) {
+                        campaigns.push(this.formatCampaign(campaign));
+                    }
+                } catch (error) {
+                    console.warn(`Campaign ${i} not found or error:`, error);
+                }
+            }
+            
+            return campaigns;
+        } catch (error) {
+            console.error('Error getting campaigns:', error);
+            return [];
+        }
+    }
+
+    async getCampaign(campaignId) {
+        try {
+            if (!this.contract) {
+                console.error('Contract not initialized');
+                return null;
+            }
+            
+            const campaign = await this.contract.campaigns(campaignId);
+            
+            // Check if campaign exists (id should not be 0)
+            if (campaign.id.toNumber() === 0) {
+                console.warn(`Campaign ${campaignId} not found`);
+                return null;
+            }
+            
+            return this.formatCampaign(campaign);
+        } catch (error) {
+            console.error('Error getting campaign:', error);
             return null;
         }
-
-        const provider = window.walletConnection.getProvider();
-        const signer = window.walletConnection.getSigner();
-
-        if (!provider || !signer) {
-            console.log('Provider or signer not available');
-            return null;
-        }
-
-        // Initialize read-only contract
-        contract = new ethers.Contract(CONTRACT_ADDRESS, CHARITY_ABI, provider);
-        
-        // Initialize contract with signer for transactions
-        contractWithSigner = new ethers.Contract(CONTRACT_ADDRESS, CHARITY_ABI, signer);
-
-        console.log('Contract initialized:', CONTRACT_ADDRESS);
-        return { contract, contractWithSigner };
-    } catch (error) {
-        console.error('Error initializing contract:', error);
-        return null;
     }
-}
 
-// Get campaign count from smart contract
-async function getCampaignCount() {
-    try {
-        if (!contract) {
-            await initializeContract();
-        }
-
-        if (!contract) {
-            throw new Error('Contract not initialized');
-        }
-
-        const count = await contract.nextCampaignId();
-        return count.toNumber() - 1; // nextCampaignId starts from 1
-    } catch (error) {
-        console.error('Error getting campaign count:', error);
-        return 0;
-    }
-}
-
-// Get campaign info from smart contract
-async function getCampaignInfo(campaignId) {
-    try {
-        if (!contract) {
-            await initializeContract();
-        }
-
-        if (!contract) {
-            throw new Error('Contract not initialized');
-        }
-
-        const campaign = await contract.campaigns(campaignId);
-        
+    formatCampaign(campaign) {
         return {
             id: campaign.id.toNumber(),
             creator: campaign.creator,
@@ -123,174 +147,251 @@ async function getCampaignInfo(campaignId) {
             description: campaign.description,
             media: campaign.media,
             location: campaign.location,
-            targetAmount: ethers.utils.formatEther(campaign.targetAmount),
+            targetAmount: campaign.targetAmount,
             campaignWallet: campaign.campaignWallet,
-            collected: ethers.utils.formatEther(campaign.collected),
-            totalDisbursed: ethers.utils.formatEther(campaign.totalDisbursed),
-            createdAt: new Date(campaign.createdAt.toNumber() * 1000),
-            endDate: campaign.endDate.toNumber() > 0 ? new Date(campaign.endDate.toNumber() * 1000) : null,
-            updatedAt: new Date(campaign.updatedAt.toNumber() * 1000),
+            collected: campaign.collected,
+            totalDisbursed: campaign.totalDisbursed,
+            createdAt: campaign.createdAt.toNumber(),
+            endDate: campaign.endDate.toNumber(),
+            updatedAt: campaign.updatedAt.toNumber(),
             beneficiary: campaign.beneficiary,
-            active: campaign.active
+            active: campaign.active,
+            collectedEth: this.formatEther(campaign.collected),
+            targetEth: this.formatEther(campaign.targetAmount),
+            progress: this.calculateProgress(
+                parseFloat(this.formatEther(campaign.collected)),
+                parseFloat(this.formatEther(campaign.targetAmount))
+            ),
+            daysLeft: this.calculateDaysLeft(campaign.endDate.toNumber())
         };
-    } catch (error) {
-        console.error('Error getting campaign info:', error);
-        throw error;
     }
-}
 
-// Get all campaigns from smart contract
-async function getAllCampaigns() {
-    try {
-        if (!contract) {
-            await initializeContract();
+    // Donation functions
+    async donate(campaignId, amountInEther) {
+        try {
+            const tx = await this.contract.donate(campaignId, {
+                value: this.parseEther(amountInEther)
+            });
+            
+            const receipt = await tx.wait();
+            return {
+                success: true,
+                tx: receipt,
+                txHash: receipt.transactionHash
+            };
+        } catch (error) {
+            console.error('Error donating:', error);
+            return {
+                success: false,
+                error: error.message
+            };
         }
+    }
 
-        const nextId = await contract.nextCampaignId();
-        const campaigns = [];
+    async getDonations(campaignId) {
+        try {
+            const count = await this.contract.getDonationsCount(campaignId);
+            const donations = [];
+            
+            for (let i = 0; i < count; i++) {
+                const donation = await this.contract.getDonation(campaignId, i);
+                donations.push({
+                    donor: donation.donor,
+                    amount: donation.amount,
+                    amountEth: this.formatEther(donation.amount),
+                    timestamp: donation.timestamp.toNumber(),
+                    blockNumber: donation.blockNumber.toNumber(),
+                    txHash: donation.txHash
+                });
+            }
+            
+            return donations;
+        } catch (error) {
+            console.error('Error getting donations:', error);
+            return [];
+        }
+    }
 
-        for (let i = 1; i < nextId.toNumber(); i++) {
-            try {
-                const info = await getCampaignInfo(i);
-                // Only show active campaigns to users
-                if (info.active) {
-                    // Get additional info
-                    const likesCount = await contract.likesCount(i);
-                    const supportersCount = await contract.getSupportersCount(i);
-                    
-                    campaigns.push({
-                        ...info,
-                        likesCount: likesCount.toNumber(),
-                        supportersCount: supportersCount.toNumber()
+    async getDisbursements(campaignId) {
+        try {
+            const count = await this.contract.getDisbursementsCount(campaignId);
+            const disbursements = [];
+            
+            for (let i = 0; i < count; i++) {
+                const disbursement = await this.contract.getDisbursement(campaignId, i);
+                disbursements.push({
+                    recipient: disbursement.recipient,
+                    amount: disbursement.amount,
+                    amountEth: this.formatEther(disbursement.amount),
+                    timestamp: disbursement.timestamp.toNumber(),
+                    blockNumber: disbursement.blockNumber.toNumber(),
+                    txHash: disbursement.txHash
+                });
+            }
+            
+            return disbursements;
+        } catch (error) {
+            console.error('Error getting disbursements:', error);
+            return [];
+        }
+    }
+
+    async getSupporters(campaignId) {
+        try {
+            const supporters = await this.contract.getSupporters(campaignId);
+            return supporters;
+        } catch (error) {
+            console.error('Error getting supporters:', error);
+            return [];
+        }
+    }
+
+    async getSupportersCount(campaignId) {
+        try {
+            const count = await this.contract.getSupportersCount(campaignId);
+            return count.toNumber();
+        } catch (error) {
+            console.error('Error getting supporters count:', error);
+            return 0;
+        }
+    }
+
+    // Comment functions
+    async addComment(campaignId, text, isAnonymous = false) {
+        try {
+            const tx = await this.contract.addComment(campaignId, text, isAnonymous);
+            const receipt = await tx.wait();
+            return {
+                success: true,
+                tx: receipt
+            };
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async getComments(campaignId) {
+        try {
+            const count = await this.contract.getCommentsCount(campaignId);
+            const comments = [];
+            
+            for (let i = 0; i < count; i++) {
+                const comment = await this.contract.getComment(campaignId, i);
+                comments.push({
+                    commenter: comment.commenter,
+                    text: comment.text,
+                    timestamp: comment.timestamp.toNumber(),
+                    isAnonymous: comment.isAnonymous
+                });
+            }
+            
+            return comments;
+        } catch (error) {
+            console.error('Error getting comments:', error);
+            return [];
+        }
+    }
+
+    // Like functions
+    async like(campaignId) {
+        try {
+            const tx = await this.contract.like(campaignId);
+            const receipt = await tx.wait();
+            return {
+                success: true,
+                tx: receipt
+            };
+        } catch (error) {
+            console.error('Error liking:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async unlike(campaignId) {
+        try {
+            const tx = await this.contract.unlike(campaignId);
+            const receipt = await tx.wait();
+            return {
+                success: true,
+                tx: receipt
+            };
+        } catch (error) {
+            console.error('Error unliking:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async getLikesCount(campaignId) {
+        try {
+            const count = await this.contract.likesCount(campaignId);
+            return count.toNumber();
+        } catch (error) {
+            console.error('Error getting likes count:', error);
+            return 0;
+        }
+    }
+
+    async isLiked(campaignId, address) {
+        try {
+            const liked = await this.contract.liked(campaignId, address);
+            return liked;
+        } catch (error) {
+            console.error('Error checking liked status:', error);
+            return false;
+        }
+    }
+
+    // User donations
+    async getUserDonations(userAddress) {
+        try {
+            const campaigns = await this.getAllCampaigns();
+            const userDonations = [];
+            
+            for (const campaign of campaigns) {
+                const donations = await this.getDonations(campaign.id);
+                const userCampaignDonations = donations.filter(d => 
+                    d.donor.toLowerCase() === userAddress.toLowerCase()
+                );
+                
+                if (userCampaignDonations.length > 0) {
+                    userDonations.push({
+                        campaign: campaign,
+                        donations: userCampaignDonations
                     });
                 }
-            } catch (error) {
-                console.error(`Error loading campaign ${i}:`, error);
             }
+            
+            return userDonations;
+        } catch (error) {
+            console.error('Error getting user donations:', error);
+            return [];
         }
-
-        return campaigns;
-    } catch (error) {
-        console.error('Error getting all campaigns:', error);
-        return [];
     }
-}
 
-// Donate to a campaign
-async function donateToContract(campaignId, amountInCFX) {
-    try {
-        if (!contractWithSigner) {
-            await initializeContract();
-        }
-
-        if (!contractWithSigner) {
-            throw new Error('Contract not initialized. Please connect your wallet first.');
-        }
-
-        // Convert amount to Wei
-        const amountInWei = ethers.utils.parseEther(amountInCFX.toString());
-
-        console.log(`Donating ${amountInCFX} CFX to campaign ${campaignId}...`);
-
-        // Send transaction
-        const tx = await contractWithSigner.donate(campaignId, {
-            value: amountInWei,
-            gasLimit: 300000 // Set a reasonable gas limit
-        });
-
-        console.log('Transaction sent:', tx.hash);
-
-        // Wait for confirmation
-        const receipt = await tx.wait();
-        console.log('Transaction confirmed:', receipt);
-
-        return {
-            success: true,
-            transactionHash: tx.hash,
-            receipt: receipt
-        };
-
-    } catch (error) {
-        console.error('Error donating to contract:', error);
-        
-        let errorMessage = 'Có lỗi xảy ra khi thực hiện giao dịch';
-        
-        if (error.code === 4001) {
-            errorMessage = 'Bạn đã từ chối giao dịch';
-        } else if (error.code === 'INSUFFICIENT_FUNDS') {
-            errorMessage = 'Số dư không đủ để thực hiện giao dịch';
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-
-        return {
-            success: false,
-            error: errorMessage
-        };
+    // Currency conversion (mock - replace with real API)
+    async convertToVND(ethAmount) {
+        // Mock rate: 1 ETH = 50,000,000 VND
+        const rate = 50000000;
+        return Math.round(ethAmount * rate);
     }
-}
 
-// Exchange rate management
-let CFX_TO_VND_RATE = 70000000; // Default: 1 CFX = 70,000,000 VND
-let lastRateFetchTime = 0;
-const RATE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// Get CFX to VND exchange rate (can be updated to use real API)
-async function getCFXtoVNDRate() {
-    const now = Date.now();
-    if (CFX_TO_VND_RATE > 0 && (now - lastRateFetchTime) < RATE_CACHE_DURATION) {
-        return CFX_TO_VND_RATE;
-    }
-    
-    // TODO: Implement real exchange rate API
-    // For now, use fixed rate
-    CFX_TO_VND_RATE = 70000000;
-    lastRateFetchTime = now;
-    return CFX_TO_VND_RATE;
-}
-
-// Convert VND to CFX
-function convertVNDtoCFX(amountVND) {
-    return amountVND / CFX_TO_VND_RATE;
-}
-
-// Convert CFX to VND
-function convertCFXtoVND(amountCFX) {
-    return amountCFX * CFX_TO_VND_RATE;
-}
-
-// Format currency
-function formatCurrency(amount, currency = 'VND') {
-    if (currency === 'VND') {
+    formatCurrency(amount) {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
         }).format(amount);
-    } else if (currency === 'CFX') {
-        return `${parseFloat(amount).toFixed(4)} CFX`;
     }
-    return amount.toString();
 }
 
-// Export functions
-window.smartContract = {
-    CONTRACT_ADDRESS,
-    loadABI,
-    initializeContract,
-    getCampaignCount,
-    getCampaignInfo,
-    getAllCampaigns,
-    donateToContract,
-    getCFXtoVNDRate,
-    convertVNDtoCFX,
-    convertCFXtoVND,
-    formatCurrency,
-    getContract: () => contract,
-    getContractWithSigner: () => contractWithSigner
-};
-
-// Auto-load ABI on module load
-(async () => {
-    await loadABI();
-    console.log('Smart contract module loaded with ABI');
-})();
+// Create global instance
+window.smartContract = new SmartContract();
