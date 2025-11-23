@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chiến dịch quyên góp - QuyTuThien</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <img src="assets/logo.svg" alt="QuyTuThien Logo" height="40" class="me-2">
+                <span class="fw-bold text-primary">QuyTuThien</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="campaigns.html">Chiến dịch</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">Giới thiệu</a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Wallet Display - Improved Design -->
+                    <div id="walletDisplay" class="wallet-container" style="display: none;">
+                        <div class="wallet-badge">
+                            <i class="fas fa-wallet me-2"></i>
+                            <span id="walletAddress" class="wallet-address"></span>
+                            <span id="walletBalance" class="wallet-balance ms-2"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Connect Wallet Button -->
+                    <button id="connectWalletBtn" class="btn btn-primary">
+                        <i class="fas fa-wallet me-2"></i>Kết nối ví
+                    </button>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="profile.html">Hồ sơ</a></li>
+                            <li><a class="dropdown-item" href="my-donations.html">Quyên góp của tôi</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="disconnectWallet()">Đăng xuất</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Search and Filter Section -->
+    <section class="py-5 bg-light" style="margin-top: 76px;">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="search-filter-card bg-white p-4 rounded-3 shadow-sm">
+                        <div class="row align-items-center">
+                            <div class="col-lg-4 mb-3 mb-lg-0">
+                                <div class="form-group">
+                                    <label class="form-label fw-bold">Tìm kiếm chiến dịch</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="searchInput" placeholder="Nhập từ khóa...">
+                                        <button class="btn btn-primary" type="button">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3 mb-lg-0">
+                                <div class="form-group">
+                                    <label class="form-label fw-bold">Khu vực</label>
+                                    <select class="form-select" id="regionFilter">
+                                        <option value="">Tất cả khu vực</option>
+                                        <option value="hanoi">Hà Nội</option>
+                                        <option value="hcm">TP. Hồ Chí Minh</option>
+                                        <option value="danang">Đà Nẵng</option>
+                                        <option value="other">Tỉnh khác</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3 mb-lg-0">
+                                <div class="form-group">
+                                    <label class="form-label fw-bold">Danh mục</label>
+                                    <select class="form-select" id="categoryFilter">
+                                        <option value="">Tất cả danh mục</option>
+                                        <option value="medical">Y tế</option>
+                                        <option value="education">Giáo dục</option>
+                                        <option value="disaster">Thiên tai</option>
+                                        <option value="poverty">Nghèo đói</option>
+                                        <option value="elderly">Người già</option>
+                                        <option value="children">Trẻ em</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-2">
+                                <div class="form-group">
+                                    <label class="form-label fw-bold">Sắp xếp</label>
+                                    <select class="form-select" id="sortFilter">
+                                        <option value="newest">Mới nhất</option>
+                                        <option value="urgent">Cấp bách</option>
+                                        <option value="most-donated">Nhiều quyên góp</option>
+                                        <option value="ending-soon">Sắp kết thúc</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Campaign Results -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <h4 class="fw-bold">Tìm thấy <span id="resultCount">1,234</span> chiến dịch</h4>
+                    <p class="text-muted">Các chiến dịch quyên góp đang diễn ra</p>
+                </div>
+                <div class="col-lg-4">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <label class="form-label me-2 mb-0">Hiển thị:</label>
+                        <select class="form-select w-auto" id="itemsPerPage">
+                            <option value="12">12</option>
+                            <option value="24">24</option>
+                            <option value="48">48</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row" id="campaignsList">
+                <!-- Campaigns will be loaded here -->
+            </div>
+
+            <!-- Pagination -->
+            <nav aria-label="Campaign pagination" class="mt-5">
+                <ul class="pagination justify-content-center" id="pagination">
+                    <!-- Pagination will be generated here -->
+                </ul>
+            </nav>
+        </div>
+    </section>
+
+    <!-- Campaign Card Template (Hidden) -->
+    <div class="d-none" id="campaignCardTemplate">
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="campaign-card bg-white rounded-3 shadow-sm h-100 position-relative">
+                <!-- Campaign Badge -->
+                <div class="campaign-badge position-absolute top-0 start-0 m-3">
+                    <span class="badge bg-danger">Cấp bách</span>
+                </div>
+                
+                <!-- Like Button -->
+                <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-3 like-btn" data-campaign-id="">
+                    <i class="far fa-heart"></i>
+                    <span class="like-count">0</span>
+                </button>
+                
+                <!-- Campaign Image -->
+                <div class="campaign-image">
+                    <img src="" alt="" class="w-100 rounded-top-3" style="height: 200px; object-fit: cover;">
+                </div>
+                
+                <!-- Campaign Content -->
+                <div class="p-4">
+                    <!-- Title -->
+                    <h6 class="fw-bold campaign-title mb-2"></h6>
+                    
+                    <!-- Description -->
+                    <p class="text-muted small campaign-description mb-3"></p>
+                    
+                    <!-- Progress -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Tiến độ</small>
+                            <small class="fw-bold campaign-progress-text">0%</small>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar campaign-progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <h6 class="fw-bold text-primary mb-0 campaign-raised">0 VND</h6>
+                            <small class="text-muted">Đã quyên góp</small>
+                        </div>
+                        <div class="col-4">
+                            <h6 class="fw-bold text-success mb-0 campaign-supporters">0</h6>
+                            <small class="text-muted">Người ủng hộ</small>
+                        </div>
+                        <div class="col-4">
+                            <h6 class="fw-bold text-info mb-0 campaign-days-left">0</h6>
+                            <small class="text-muted">Ngày còn lại</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Location -->
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                        <small class="text-muted campaign-location"></small>
+                    </div>
+                    
+                    <!-- Verified Badge -->
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <small class="text-success">Đã xác minh trên blockchain</small>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-primary campaign-detail-btn">
+                            <i class="fas fa-eye me-2"></i>Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer bg-dark text-white py-5">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Company Info -->
+                <div class="col-lg-4 col-md-6">
+                    <h5 class="fw-bold mb-4">
+                        <i class="fas fa-heart text-danger me-2"></i>QuyTuThien
+                    </h5>
+                    <p class="text-light opacity-75 mb-3">
+                        Nền tảng quyên góp từ thiện minh bạch đầu tiên tại Việt Nam sử dụng công nghệ blockchain.
+                    </p>
+                    <div class="d-flex gap-3 mb-3">
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Facebook">
+                            <i class="fab fa-facebook fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Twitter">
+                            <i class="fab fa-twitter fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Instagram">
+                            <i class="fab fa-instagram fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="LinkedIn">
+                            <i class="fab fa-linkedin fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="YouTube">
+                            <i class="fab fa-youtube fa-lg"></i>
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-light">
+                            <i class="fab fa-apple me-1"></i>App Store
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-light">
+                            <i class="fab fa-google-play me-1"></i>Google Play
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-4">Về chúng tôi</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="about.html" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Giới thiệu
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Đội ngũ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Liên hệ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Tuyển dụng
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Blog
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Resources -->
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-4">Hỗ trợ</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Trung tâm trợ giúp
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>FAQ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Hướng dẫn
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Chính sách
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Báo cáo
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Blockchain Stats -->
+                <div class="col-lg-4 col-md-6">
+                    <h6 class="fw-bold mb-4">
+                        <i class="fas fa-cube me-2"></i>Thống kê Blockchain
+                    </h6>
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-cubes me-2"></i>Block height:
+                            </span>
+                            <span class="fw-bold" id="blockHeight">18,456,789</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-exchange-alt me-2"></i>Tổng giao dịch:
+                            </span>
+                            <span class="fw-bold" id="totalTx">1,234,567</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-gas-pump me-2"></i>Gas price:
+                            </span>
+                            <span class="fw-bold" id="gasPrice">21 Gwei</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-light opacity-75"></i>
+                        <a href="mailto:support@quytuthien.vn" class="text-white text-decoration-none">
+                            support@quytuthien.vn
+                        </a>
+                    </div>
+                    <div>
+                        <i class="fas fa-phone me-2 text-light opacity-75"></i>
+                        <a href="tel:+84123456789" class="text-white text-decoration-none">
+                            +84 123 456 789
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <hr class="my-4 bg-white opacity-25">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-0 text-light opacity-75">
+                        &copy; 2025 QuyTuThien. Tất cả quyền được bảo lưu.
+                    </p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3 hover-opacity-100">
+                        Điều khoản dịch vụ
+                    </a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3 hover-opacity-100">
+                        Chính sách bảo mật
+                    </a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                        Cookies
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <!-- Smart Contract JS -->
+    <script src="js/smart-contract.js"></script>
+    <!-- Wallet Connection -->
+    <script src="js/wallet-connect.js"></script>
+    <!-- Custom JS -->
+    <script src="js/campaigns.js"></script>
+</body>
+</html>

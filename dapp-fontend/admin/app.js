@@ -1309,17 +1309,17 @@
 
                                     <div class="row g-3 mb-4 pb-4 border-bottom">
                                         <div class="col-6">
-                                            <div class="text-center p-3" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; color: white;">
-                                                <small class="d-block mb-2 opacity-90">Đã quyên góp</small>
-                                                <div class="fw-bold" style="font-size: 1.1rem; line-height: 1.2; word-break: break-word;">${ethToVnd ? ethToVndDisplay(campaign.currentAmount) : (campaign.currentAmount * 80000000).toLocaleString('vi-VN')}</div>
-                                                <small class="opacity-90 d-block mt-1">VND</small>
+                                            <div class="text-center p-2" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; color: white;">
+                                                <small class="d-block mb-1 opacity-90" style="font-size: 0.75rem;">Đã quyên góp</small>
+                                                <div class="fw-bold" style="font-size: 0.85rem; line-height: 1.3; word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;">${ethToVnd ? ethToVndDisplay(campaign.currentAmount) : (campaign.currentAmount * 80000000).toLocaleString('vi-VN')}</div>
+                                                <small class="opacity-90 d-block" style="font-size: 0.7rem;">VND</small>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="text-center p-3" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-radius: 12px; color: white;">
-                                                <small class="d-block mb-2 opacity-90">Mục tiêu</small>
-                                                <div class="fw-bold" style="font-size: 1.1rem; line-height: 1.2; word-break: break-word;">${ethToVnd ? ethToVndDisplay(campaign.targetAmount) : (campaign.targetAmount * 80000000).toLocaleString('vi-VN')}</div>
-                                                <small class="opacity-90 d-block mt-1">VND</small>
+                                            <div class="text-center p-2" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border-radius: 12px; color: white;">
+                                                <small class="d-block mb-1 opacity-90" style="font-size: 0.75rem;">Mục tiêu</small>
+                                                <div class="fw-bold" style="font-size: 0.85rem; line-height: 1.3; word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;">${ethToVnd ? ethToVndDisplay(campaign.targetAmount) : (campaign.targetAmount * 80000000).toLocaleString('vi-VN')}</div>
+                                                <small class="opacity-90 d-block" style="font-size: 0.7rem;">VND</small>
                                             </div>
                                         </div>
                                     </div>

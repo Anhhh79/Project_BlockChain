@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết chiến dịch - QuyTuThien</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <img src="assets/logo.svg" alt="QuyTuThien Logo" height="40" class="me-2">
+                <span class="fw-bold text-primary">QuyTuThien</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="campaigns.html">Chiến dịch</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">Giới thiệu</a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Wallet Display - Improved Design -->
+                    <div id="walletDisplay" class="wallet-container" style="display: none;">
+                        <div class="wallet-badge">
+                            <i class="fas fa-wallet me-2"></i>
+                            <span id="walletAddress" class="wallet-address"></span>
+                            <span id="walletBalance" class="wallet-balance ms-2"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Connect Wallet Button -->
+                    <button id="connectWalletBtn" class="btn btn-primary">
+                        <i class="fas fa-wallet me-2"></i>Kết nối ví
+                    </button>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="profile.html">Hồ sơ</a></li>
+                            <li><a class="dropdown-item" href="my-donations.html">Quyên góp của tôi</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="disconnectWallet()">Đăng xuất</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Campaign Header -->
+    <section class="py-5" style="margin-top: 76px;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- Campaign Image Carousel -->
+                    <div id="campaignCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                            <button type="button" data-bs-target="#campaignCarousel" data-bs-slide-to="0" class="active"></button>
+                            <button type="button" data-bs-target="#campaignCarousel" data-bs-slide-to="1"></button>
+                            <button type="button" data-bs-target="#campaignCarousel" data-bs-slide-to="2"></button>
+                        </div>
+                        <div class="carousel-inner rounded-3">
+                            <div class="carousel-item active">
+                                <img src="https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=800&h=400&fit=crop&auto=format&q=80" class="d-block w-100" alt="Campaign Image" style="height: 400px; object-fit: cover;">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=400&fit=crop&auto=format&q=80" class="d-block w-100" alt="Campaign Image" style="height: 400px; object-fit: cover;">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&h=400&fit=crop&auto=format&q=80" class="d-block w-100" alt="Campaign Image" style="height: 400px; object-fit: cover;">
+                            </div>
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#campaignCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#campaignCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+
+                    <!-- Campaign Info -->
+                    <div class="campaign-header mb-4">
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                            <div>
+                                <span class="badge bg-danger me-2">Cấp bách</span>
+                                <span class="badge bg-success">Đã xác minh</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-outline-primary btn-sm me-2" id="likeBtn">
+                                    <i class="far fa-heart"></i>
+                                    <span id="likeCount">1,234</span>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm me-2" onclick="shareCampaign()">
+                                    <i class="fas fa-share"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
+                                    <i class="fas fa-flag"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <h1 class="display-6 fw-bold mb-3" id="campaignTitle">Hỗ trợ xây dựng trường học cho trẻ em vùng cao</h1>
+                        <p class="lead text-muted mb-4" id="campaignDescription">
+                            Chiến dịch quyên góp xây dựng trường học cho 200 trẻ em tại vùng núi cao Sapa, Lào Cai. Hiện tại các em phải đi bộ hơn 10km mỗi ngày để đến trường.
+                        </p>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                            <span class="text-muted">Sapa, Lào Cai</span>
+                            <i class="fas fa-calendar text-muted me-2 ms-4"></i>
+                            <span class="text-muted">Còn 45 ngày</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Donation Panel -->
+                <div class="col-lg-4">
+                    <div class="donation-panel bg-white border rounded-3 shadow-sm p-4 sticky-top" style="top: 100px;">
+                        <h5 class="fw-bold mb-3">Thông tin quyên góp</h5>
+                        
+                        <!-- Progress -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="fw-bold text-primary" id="totalRaised">2,450,000,000 VND</span>
+                                <span class="text-muted" id="progressPercentage">82%</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: 82%" id="progressBar"></div>
+                            </div>
+                            <small class="text-muted">Mục tiêu: <span id="targetAmount">3,000,000,000 VND</span></small>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="row text-center mb-4">
+                            <div class="col-6">
+                                <h4 class="fw-bold text-success mb-0" id="supportersCount">1,456</h4>
+                                <small class="text-muted">Người ủng hộ</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="fw-bold text-info mb-0" id="daysLeft">45</h4>
+                                <small class="text-muted">Ngày còn lại</small>
+                            </div>
+                        </div>
+
+                        <!-- Donation Form -->
+                        <div class="donation-form">
+                            <label class="form-label fw-bold">Số tiền muốn ủng hộ (VND)</label>
+                            <div class="mb-3">
+                                <div class="btn-group w-100 mb-2" role="group">
+                                    <input type="radio" class="btn-check" name="donationAmount" id="amount100k" value="100000">
+                                    <label class="btn btn-outline-primary" for="amount100k">100K</label>
+                                    
+                                    <input type="radio" class="btn-check" name="donationAmount" id="amount500k" value="500000">
+                                    <label class="btn btn-outline-primary" for="amount500k">500K</label>
+                                    
+                                    <input type="radio" class="btn-check" name="donationAmount" id="amount1m" value="1000000">
+                                    <label class="btn btn-outline-primary" for="amount1m">1M</label>
+                                </div>
+                                <input type="number" class="form-control" id="customAmount" placeholder="Nhập số tiền khác" min="10000">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="anonymousDonation">
+                                    <label class="form-check-label" for="anonymousDonation">
+                                        Quyên góp ẩn danh
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Lời nhắn (tùy chọn)</label>
+                                <textarea class="form-control" id="donationMessage" rows="3" placeholder="Gửi lời động viên..."></textarea>
+                            </div>
+
+                            <div class="d-grid">
+                                <button class="btn btn-primary btn-lg" id="donateBtn" onclick="openDonationModal()">
+                                    <i class="fas fa-heart me-2"></i>Ủng hộ ngay
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Campaign Details Tabs -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <ul class="nav nav-pills justify-content-center mb-5" id="campaignTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="story-tab" data-bs-toggle="pill" data-bs-target="#story" type="button" role="tab">
+                                <i class="fas fa-book me-2"></i>Câu chuyện
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="supporters-tab" data-bs-toggle="pill" data-bs-target="#supporters" type="button" role="tab">
+                                <i class="fas fa-users me-2"></i>Người ủng hộ (<span id="supportersTabCount">1,456</span>)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="comments-tab" data-bs-toggle="pill" data-bs-target="#comments" type="button" role="tab">
+                                <i class="fas fa-comments me-2"></i>Bình luận (<span id="commentsTabCount">234</span>)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="updates-tab" data-bs-toggle="pill" data-bs-target="#updates" type="button" role="tab">
+                                <i class="fas fa-bell me-2"></i>Cập nhật
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="campaignTabsContent">
+                        <!-- Story Tab -->
+                        <div class="tab-pane fade show active" id="story" role="tabpanel">
+                            <div class="row justify-content-center">
+                                <div class="col-lg-8">
+                                    <div class="bg-white p-5 rounded-3 shadow-sm">
+                                        <h3 class="fw-bold mb-4">Câu chuyện chiến dịch</h3>
+                                        <div class="campaign-story">
+                                            <p class="mb-4">
+                                                Tại vùng núi cao Sapa, Lào Cai, có hơn 200 trẻ em đang phải đi bộ hơn 10km mỗi ngày để đến trường. Con đường gồ ghề, thời tiết khắc nghiệt khiến nhiều em phải bỏ học.
+                                            </p>
+                                            
+                                            <h5 class="fw-bold mb-3">Tình trạng hiện tại</h5>
+                                            <ul class="mb-4">
+                                                <li>200+ trẻ em không có trường học gần nhà</li>
+                                                <li>Phải đi bộ 10km mỗi ngày qua địa hình hiểm trở</li>
+                                                <li>Thời tiết khắc nghiệt, mùa đông có tuyết rơi</li>
+                                                <li>Nhiều em phải bỏ học do quá xa và nguy hiểm</li>
+                                            </ul>
+
+                                            <h5 class="fw-bold mb-3">Kế hoạch xây dựng</h5>
+                                            <ul class="mb-4">
+                                                <li>Xây dựng 1 trường học với 6 phòng học</li>
+                                                <li>Trang bị đầy đủ bàn ghế và thiết bị học tập</li>
+                                                <li>Xây dựng nhà ăn cho học sinh</li>
+                                                <li>Tạo sân chơi và khu vui chơi cho trẻ em</li>
+                                            </ul>
+
+                                            <h5 class="fw-bold mb-3">Dự toán chi phí</h5>
+                                            <div class="table-responsive mb-4">
+                                                <table class="table table-striped">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>Vật liệu xây dựng</td>
+                                                            <td class="text-end fw-bold">1,500,000,000 VND</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Nhân công</td>
+                                                            <td class="text-end fw-bold">800,000,000 VND</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Trang thiết bị</td>
+                                                            <td class="text-end fw-bold">500,000,000 VND</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Chi phí khác</td>
+                                                            <td class="text-end fw-bold">200,000,000 VND</td>
+                                                        </tr>
+                                                        <tr class="table-primary">
+                                                            <td class="fw-bold">Tổng cộng</td>
+                                                            <td class="text-end fw-bold">3,000,000,000 VND</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Supporters Tab -->
+                        <div class="tab-pane fade" id="supporters" role="tabpanel">
+                            <div class="row justify-content-center">
+                                <div class="col-lg-10">
+                                    <div class="bg-white p-4 rounded-3 shadow-sm">
+                                        <div class="d-flex justify-content-between align-items-center mb-4">
+                                            <h3 class="fw-bold mb-0">Danh sách người ủng hộ</h3>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-3">Sắp xếp:</span>
+                                                <select class="form-select w-auto">
+                                                    <option>Mới nhất</option>
+                                                    <option>Số tiền cao nhất</option>
+                                                    <option>Cũ nhất</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Người gửi</th>
+                                                        <th>Số tiền</th>
+                                                        <th>Thời gian</th>
+                                                        <th>Lời nhắn</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="supportersTable">
+                                                    <!-- Supporters data will be loaded here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Pagination for supporters -->
+                                        <nav aria-label="Supporters pagination" class="mt-4">
+                                            <ul class="pagination justify-content-center" id="supportersPagination">
+                                                <!-- Pagination will be generated here -->
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comments Tab -->
+                        <div class="tab-pane fade" id="comments" role="tabpanel">
+                            <div class="row justify-content-center">
+                                <div class="col-lg-8">
+                                    <div class="bg-white p-4 rounded-3 shadow-sm">
+                                        <h3 class="fw-bold mb-4">Bình luận và thảo luận</h3>
+                                        
+                                        <!-- Comment Form -->
+                                        <div class="comment-form mb-4">
+                                            <div class="d-flex">
+                                                <img src="https://via.placeholder.com/40x40" alt="Avatar" class="rounded-circle me-3">
+                                                <div class="flex-fill">
+                                                    <textarea class="form-control mb-2" id="commentText" rows="3" placeholder="Viết bình luận của bạn..."></textarea>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input" type="radio" name="commentType" id="commentSupport" value="support" checked>
+                                                                <label class="form-check-label text-success" for="commentSupport">
+                                                                    <i class="fas fa-heart me-1"></i>Động viên
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input" type="radio" name="commentType" id="commentQuestion" value="question">
+                                                                <label class="form-check-label text-info" for="commentQuestion">
+                                                                    <i class="fas fa-question-circle me-1"></i>Câu hỏi
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <button class="btn btn-primary" onclick="submitComment()">
+                                                            <i class="fas fa-paper-plane me-2"></i>Gửi
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Comments List -->
+                                        <div id="commentsList">
+                                            <!-- Comments will be loaded here -->
+                                        </div>
+
+                                        <!-- Load More Comments -->
+                                        <div class="text-center mt-4">
+                                            <button class="btn btn-outline-primary" onclick="loadMoreComments()">
+                                                <i class="fas fa-chevron-down me-2"></i>Xem thêm bình luận
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Updates Tab -->
+                        <div class="tab-pane fade" id="updates" role="tabpanel">
+                            <div class="row justify-content-center">
+                                <div class="col-lg-8">
+                                    <div class="bg-white p-4 rounded-3 shadow-sm">
+                                        <h3 class="fw-bold mb-4">Cập nhật tiến độ</h3>
+                                        
+                                        <div class="timeline">
+                                            <div class="timeline-item mb-4">
+                                                <div class="timeline-marker bg-primary"></div>
+                                                <div class="timeline-content">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="fw-bold mb-0">Bắt đầu xây dựng móng</h6>
+                                                        <small class="text-muted">2 ngày trước</small>
+                                                    </div>
+                                                    <p class="text-muted">Đã bắt đầu thi công xây dựng móng cho trường học. Ước tính hoàn thành trong 2 tuần.</p>
+                                                    <div class="d-flex gap-2">
+                                                        <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=150&h=100&fit=crop&auto=format&q=80" alt="Update" class="rounded" style="object-fit: cover;">
+                                                        <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=150&h=100&fit=crop&auto=format&q=80" alt="Update" class="rounded" style="object-fit: cover;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="timeline-item mb-4">
+                                                <div class="timeline-marker bg-success"></div>
+                                                <div class="timeline-content">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="fw-bold mb-0">Đạt 80% mục tiêu</h6>
+                                                        <small class="text-muted">1 tuần trước</small>
+                                                    </div>
+                                                    <p class="text-muted">Chúng tôi đã đạt được 80% số tiền cần thiết! Cảm ơn sự ủng hộ của tất cả mọi người.</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="timeline-item mb-4">
+                                                <div class="timeline-marker bg-info"></div>
+                                                <div class="timeline-content">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <h6 class="fw-bold mb-0">Khảo sát địa điểm</h6>
+                                                        <small class="text-muted">3 tuần trước</small>
+                                                    </div>
+                                                    <p class="text-muted">Đã hoàn thành khảo sát địa điểm xây dựng và lập kế hoạch chi tiết.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Donation Modal -->
+    <div class="modal fade" id="donationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xác nhận quyên góp</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-heart text-danger" style="font-size: 48px;"></i>
+                        <h4 class="mt-3">Cảm ơn sự ủng hộ của bạn!</h4>
+                    </div>
+                    
+                    <div class="donation-summary p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Số tiền:</span>
+                            <span class="fw-bold" id="modalDonationAmount">500,000 VND</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tổng cộng:</span>
+                            <span class="fw-bold text-primary" id="modalTotalAmount">500,000 VND</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirmDonation" required>
+                            <label class="form-check-label" for="confirmDonation">
+                                Tôi xác nhận thực hiện quyên góp này
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="confirmDonationBtn" onclick="processDonation()">
+                        <i class="fas fa-heart me-2"></i>Xác nhận ủng hộ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Báo cáo chiến dịch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reportForm">
+                        <div class="mb-3">
+                            <label class="form-label">Lý do báo cáo:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reportReason" id="fraud" value="fraud">
+                                <label class="form-check-label" for="fraud">Nghi ngờ lừa đảo</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reportReason" id="inappropriate" value="inappropriate">
+                                <label class="form-check-label" for="inappropriate">Nội dung không phù hợp</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reportReason" id="spam" value="spam">
+                                <label class="form-check-label" for="spam">Spam</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="reportReason" id="other" value="other">
+                                <label class="form-check-label" for="other">Khác</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mô tả chi tiết:</label>
+                            <textarea class="form-control" name="reportDescription" rows="4" placeholder="Vui lòng mô tả chi tiết lý do báo cáo..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-warning" onclick="submitReport()">
+                        <i class="fas fa-flag me-2"></i>Gửi báo cáo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xem hình ảnh</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <img id="modalImage" src="" alt="Full size image" class="w-100">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer bg-dark text-white py-5">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Company Info -->
+                <div class="col-lg-4 col-md-6">
+                    <h5 class="fw-bold mb-4">
+                        <i class="fas fa-heart text-danger me-2"></i>QuyTuThien
+                    </h5>
+                    <p class="text-light opacity-75 mb-3">
+                        Nền tảng quyên góp từ thiện minh bạch đầu tiên tại Việt Nam sử dụng công nghệ blockchain.
+                    </p>
+                    <div class="d-flex gap-3 mb-3">
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Facebook">
+                            <i class="fab fa-facebook fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Twitter">
+                            <i class="fab fa-twitter fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Instagram">
+                            <i class="fab fa-instagram fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="LinkedIn">
+                            <i class="fab fa-linkedin fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="YouTube">
+                            <i class="fab fa-youtube fa-lg"></i>
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-light">
+                            <i class="fab fa-apple me-1"></i>App Store
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-light">
+                            <i class="fab fa-google-play me-1"></i>Google Play
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-4">Về chúng tôi</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="about.html" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Giới thiệu
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Đội ngũ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Liên hệ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Tuyển dụng
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Blog
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Resources -->
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-4">Hỗ trợ</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Trung tâm trợ giúp
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>FAQ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Hướng dẫn
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Chính sách
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Báo cáo
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Blockchain Stats -->
+                <div class="col-lg-4 col-md-6">
+                    <h6 class="fw-bold mb-4">
+                        <i class="fas fa-cube me-2"></i>Thống kê Blockchain
+                    </h6>
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-cubes me-2"></i>Block height:
+                            </span>
+                            <span class="fw-bold" id="blockHeight">18,456,789</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-exchange-alt me-2"></i>Tổng giao dịch:
+                            </span>
+                            <span class="fw-bold" id="totalTx">1,234,567</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-gas-pump me-2"></i>Gas price:
+                            </span>
+                            <span class="fw-bold" id="gasPrice">21 Gwei</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-light opacity-75"></i>
+                        <a href="mailto:support@quytuthien.vn" class="text-white text-decoration-none">
+                            support@quytuthien.vn
+                        </a>
+                    </div>
+                    <div>
+                        <i class="fas fa-phone me-2 text-light opacity-75"></i>
+                        <a href="tel:+84123456789" class="text-white text-decoration-none">
+                            +84 123 456 789
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <hr class="my-4 bg-white opacity-25">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-0 text-light opacity-75">
+                        &copy; 2025 QuyTuThien. Tất cả quyền được bảo lưu.
+                    </p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3 hover-opacity-100">
+                        Điều khoản dịch vụ
+                    </a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3 hover-opacity-100">
+                        Chính sách bảo mật
+                    </a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                        Cookies
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <!-- Smart Contract JS -->
+    <script src="js/smart-contract.js"></script>
+    <!-- Wallet Connection -->
+    <script src="js/wallet-connect.js"></script>
+    <!-- Custom JS -->
+    <script src="js/campaign-detail.js"></script>
+</body>
+</html>

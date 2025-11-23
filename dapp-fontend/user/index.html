@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quy Tu Thien - Nền tảng quyên góp từ thiện blockchain</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <img src="assets/logo.svg" alt="QuyTuThien Logo" height="40" class="me-2">
+                <span class="fw-bold text-primary">QuyTuThien</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="campaigns.html">Chiến dịch</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">Giới thiệu</a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Wallet Display - Improved Design -->
+                    <div id="walletDisplay" class="wallet-container" style="display: none;">
+                        <div class="wallet-badge">
+                            <i class="fas fa-wallet me-2"></i>
+                            <span id="walletAddress" class="wallet-address"></span>
+                            <span id="walletBalance" class="wallet-balance ms-2"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Connect Wallet Button -->
+                    <button id="connectWalletBtn" class="btn btn-primary">
+                        <i class="fas fa-wallet me-2"></i>Kết nối ví
+                    </button>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="profile.html">Hồ sơ</a></li>
+                            <li><a class="dropdown-item" href="my-donations.html">Quyên góp của tôi</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="disconnectWallet()">Đăng xuất</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section bg-gradient-primary text-white py-5 position-relative overflow-hidden">
+        <div class="hero-background position-absolute w-100 h-100" style="top: 0; left: 0; z-index: 0;">
+            <img src="https://images.unsplash.com/photo-1532012197267-da84d127e765?w=1920&h=800&fit=crop&auto=format&q=80" 
+                 alt="Hero Background" 
+                 class="w-100 h-100" 
+                 style="object-fit: cover; opacity: 0.2;">
+        </div>
+        <div class="position-relative" style="z-index: 1;">
+            <div class="container">
+                <div class="row align-items-center min-vh-50">
+                    <div class="col-lg-6">
+                        <h1 class="display-4 fw-bold mb-4">Quyên góp minh bạch với Blockchain</h1>
+                        <p class="lead mb-4">Nền tảng quyên góp từ thiện đầu tiên tại Việt Nam sử dụng công nghệ blockchain đảm bảo minh bạch và an toàn tuyệt đối.</p>
+                        <div class="d-flex flex-wrap gap-3">
+                            <a href="campaigns.html" class="btn btn-light btn-lg px-4">
+                                <i class="fas fa-heart me-2"></i>Bắt đầu ủng hộ
+                            </a>
+                            <button class="btn btn-outline-light btn-lg px-4" data-bs-toggle="modal" data-bs-target="#howItWorksModal">
+                                <i class="fas fa-play-circle me-2"></i>Cách hoạt động
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="hero-stats bg-white text-dark p-4 rounded-3 shadow">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h3 class="text-primary fw-bold" id="totalCampaigns">1,234</h3>
+                                    <small class="text-muted">Chiến dịch</small>
+                                </div>
+                                <div class="col-4">
+                                    <h3 class="text-success fw-bold" id="totalDonated">5.6B VND</h3>
+                                    <small class="text-muted">Đã quyên góp</small>
+                                </div>
+                                <div class="col-4">
+                                    <h3 class="text-info fw-bold" id="totalSupporters">98K</h3>
+                                    <small class="text-muted">Người ủng hộ</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Campaigns -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <h2 class="fw-bold">Chiến dịch nổi bật</h2>
+                    <p class="text-muted">Những chiến dịch quyên góp đang cần sự hỗ trợ khẩn cấp</p>
+                </div>
+                <div class="col-lg-4 text-end">
+                    <a href="campaigns.html" class="btn btn-outline-primary">
+                        Xem tất cả <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="row" id="featuredCampaigns">
+                <!-- Campaigns will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Impact Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4">
+                    <img src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600&h=400&fit=crop&auto=format&q=80" 
+                         alt="Community Impact" 
+                         class="w-100 rounded-3 shadow"
+                         style="object-fit: cover; height: 400px;">
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <h2 class="fw-bold mb-4">Tác động tích cực đến cộng đồng</h2>
+                    <p class="text-muted mb-4">
+                        Với sự hỗ trợ của công nghệ blockchain, chúng tôi đã tạo ra những thay đổi tích cực trong cộng đồng. 
+                        Mỗi khoản quyên góp đều được theo dõi minh bạch từ lúc nhận đến khi sử dụng.
+                    </p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-school"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">125+</h5>
+                                    <small class="text-muted">Trường học xây dựng</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-heart"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">50K+</h5>
+                                    <small class="text-muted">Người được hỗ trợ y tế</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-home"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">300+</h5>
+                                    <small class="text-muted">Gia đình có nhà mới</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">1,200+</h5>
+                                    <small class="text-muted">Học bổng đã trao</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- CTA Section -->
+    <section class="py-5 bg-primary text-white position-relative overflow-hidden">
+        <div class="position-absolute w-100 h-100" style="top: 0; left: 0; z-index: 0;">
+            <img src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1920&h=400&fit=crop&auto=format&q=80" 
+                 alt="CTA Background" 
+                 class="w-100 h-100" 
+                 style="object-fit: cover; opacity: 0.3;">
+        </div>
+        <div class="position-relative" style="z-index: 1;">
+            <div class="container">
+                <div class="text-center">
+                    <h2 class="fw-bold mb-4">Bắt đầu tạo ra sự khác biệt ngay hôm nay</h2>
+                    <p class="lead mb-4">Tham gia cùng hàng ngàn người đã tin tưởng và đóng góp cho cộng đồng</p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="campaigns.html" class="btn btn-light btn-lg px-4">
+                            <i class="fas fa-heart me-2"></i>Ủng hộ ngay
+                        </a>
+                        <a href="about.html" class="btn btn-outline-light btn-lg px-4">
+                            <i class="fas fa-info-circle me-2"></i>Tìm hiểu thêm
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works Modal -->
+    <div class="modal fade" id="howItWorksModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cách thức hoạt động</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-4">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-wallet fs-4"></i>
+                            </div>
+                            <h6 class="mt-3">1. Kết nối ví</h6>
+                            <p class="text-muted">Kết nối ví MetaMask hoặc WalletConnect để bắt đầu</p>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-search fs-4"></i>
+                            </div>
+                            <h6 class="mt-3">2. Chọn chiến dịch</h6>
+                            <p class="text-muted">Tìm kiếm và chọn chiến dịch bạn muốn ủng hộ</p>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-heart fs-4"></i>
+                            </div>
+                            <h6 class="mt-3">3. Quyên góp</h6>
+                            <p class="text-muted">Thực hiện giao dịch minh bạch trên blockchain</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer bg-dark text-white py-5">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Company Info -->
+                <div class="col-lg-4 col-md-6">
+                    <h5 class="fw-bold mb-4">
+                        <i class="fas fa-heart text-danger me-2"></i>QuyTuThien
+                    </h5>
+                    <p class="text-light opacity-75 mb-3">
+                        Nền tảng quyên góp từ thiện minh bạch đầu tiên tại Việt Nam sử dụng công nghệ blockchain.
+                    </p>
+                    <div class="d-flex gap-3 mb-3">
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Facebook">
+                            <i class="fab fa-facebook fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Twitter">
+                            <i class="fab fa-twitter fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="Instagram">
+                            <i class="fab fa-instagram fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="LinkedIn">
+                            <i class="fab fa-linkedin fa-lg"></i>
+                        </a>
+                        <a href="#" class="text-white opacity-75 hover-opacity-100" title="YouTube">
+                            <i class="fab fa-youtube fa-lg"></i>
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-light">
+                            <i class="fab fa-apple me-1"></i>App Store
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-light">
+                            <i class="fab fa-google-play me-1"></i>Google Play
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-4">Về chúng tôi</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="about.html" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Giới thiệu
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Đội ngũ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Liên hệ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Tuyển dụng
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Blog
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Resources -->
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-4">Hỗ trợ</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Trung tâm trợ giúp
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>FAQ
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Hướng dẫn
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Chính sách
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                                <i class="fas fa-angle-right me-2"></i>Báo cáo
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Blockchain Stats -->
+                <div class="col-lg-4 col-md-6">
+                    <h6 class="fw-bold mb-4">
+                        <i class="fas fa-cube me-2"></i>Thống kê Blockchain
+                    </h6>
+                    <div class="bg-white bg-opacity-10 rounded-3 p-3 mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-cubes me-2"></i>Block height:
+                            </span>
+                            <span class="fw-bold" id="blockHeight">18,456,789</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-exchange-alt me-2"></i>Tổng giao dịch:
+                            </span>
+                            <span class="fw-bold" id="totalTx">1,234,567</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-light opacity-75">
+                                <i class="fas fa-gas-pump me-2"></i>Gas price:
+                            </span>
+                            <span class="fw-bold" id="gasPrice">21 Gwei</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-light opacity-75"></i>
+                        <a href="mailto:support@quytuthien.vn" class="text-white text-decoration-none">
+                            support@quytuthien.vn
+                        </a>
+                    </div>
+                    <div>
+                        <i class="fas fa-phone me-2 text-light opacity-75"></i>
+                        <a href="tel:+84123456789" class="text-white text-decoration-none">
+                            +84 123 456 789
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <hr class="my-4 bg-white opacity-25">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    <p class="mb-0 text-light opacity-75">
+                        &copy; 2025 QuyTuThien. Tất cả quyền được bảo lưu.
+                    </p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3 hover-opacity-100">
+                        Điều khoản dịch vụ
+                    </a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none me-3 hover-opacity-100">
+                        Chính sách bảo mật
+                    </a>
+                    <a href="#" class="text-light opacity-75 text-decoration-none hover-opacity-100">
+                        Cookies
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <!-- Smart Contract JS -->
+    <script src="js/smart-contract.js"></script>
+    <!-- Custom JS -->
+    <script src="js/main.js"></script>
+    <script src="js/wallet-connect.js"></script>
+</body>
+</html>
