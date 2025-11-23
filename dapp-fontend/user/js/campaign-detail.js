@@ -75,9 +75,13 @@ async function renderCampaignInfo() {
     // Update campaign images from blockchain
     updateCampaignImages();
     
-    // Update stats
-    document.getElementById('totalRaised').textContent = currentCampaign.collectedEth + ' ETH';
-    document.getElementById('targetAmount').textContent = currentCampaign.targetEth + ' ETH';
+    // Update stats - Convert ETH to VND for display
+    const ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
+    const raisedVnd = (parseFloat(currentCampaign.collectedEth) * ethToVnd).toLocaleString('vi-VN');
+    const targetVnd = (parseFloat(currentCampaign.targetEth) * ethToVnd).toLocaleString('vi-VN');
+    
+    document.getElementById('totalRaised').textContent = raisedVnd + ' VND';
+    document.getElementById('targetAmount').textContent = targetVnd + ' VND';
     document.getElementById('progressPercentage').textContent = currentCampaign.progress + '%';
     document.getElementById('progressBar').style.width = currentCampaign.progress + '%';
     
@@ -237,6 +241,10 @@ async function loadSupporters() {
         
         table.innerHTML = '';
         for (const donation of donations) {
+            // Convert ETH to VND for display
+            const ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
+            const donationVnd = (parseFloat(donation.amountEth) * ethToVnd).toLocaleString('vi-VN');
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
@@ -247,7 +255,7 @@ async function loadSupporters() {
                         <span class="font-monospace small">${window.smartContract.formatAddress(donation.donor)}</span>
                     </div>
                 </td>
-                <td><strong class="text-primary">${donation.amountEth} ETH</strong></td>
+                <td><strong class="text-primary">${donationVnd} VND</strong></td>
                 <td><small>${window.smartContract.formatTimestamp(donation.timestamp)}</small></td>
                 <td>
                     <a href="https://etherscan.io/tx/${donation.txHash}" target="_blank" class="btn btn-sm btn-outline-primary">
