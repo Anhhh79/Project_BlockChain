@@ -184,80 +184,83 @@ async function renderCampaigns() {
 
 async function createCampaignCard(campaign) {
     const col = document.createElement('div');
-    col.className = 'col-lg-4 col-md-6 mb-4 fade-in-up';
+    col.className = 'col-lg-4 col-md-6 mb-4';
     
     const supportersCount = await window.smartContract.getSupportersCount(campaign.id);
     const likesCount = await window.smartContract.getLikesCount(campaign.id);
     
-    let badge = '';
+    // Determine badge text and class
+    let badgeText = '';
+    let badgeClass = '';
     if (!campaign.active) {
-        badge = '<span class="badge bg-secondary">Đã kết thúc</span>';
+        badgeText = 'Đã kết thúc';
+        badgeClass = 'badge-danger';
     } else if (campaign.daysLeft < 7) {
-        badge = '<span class="badge bg-danger">Sắp kết thúc</span>';
+        badgeText = 'Cấp bách';
+        badgeClass = 'badge-danger';
     } else if (campaign.progress >= 75) {
-        badge = '<span class="badge bg-success">Gần đạt mục tiêu</span>';
+        badgeText = 'Gần đạt mục tiêu';
+        badgeClass = 'badge-success';
     } else {
-        badge = '<span class="badge bg-primary">Đang diễn ra</span>';
+        badgeText = 'Đang diễn ra';
+        badgeClass = 'badge-primary';
     }
     
-    const imageUrl = campaign.media || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=250&fit=crop';
+    const imageUrl = campaign.media || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800';
+    
+    // Calculate VND amounts (assuming 1 ETH = ~50,000,000 VND for display)
+    const ethToVnd = 50000000; // 50 million VND per ETH
+    const raisedVnd = (parseFloat(campaign.collectedEth) * ethToVnd).toLocaleString('vi-VN');
+    const targetVnd = (parseFloat(campaign.targetEth) * ethToVnd).toLocaleString('vi-VN');
     
     col.innerHTML = `
-        <div class="campaign-card bg-white rounded-3 shadow-sm h-100 hover-lift">
-            <div class="position-relative">
-                ${badge ? `<div class="position-absolute top-0 start-0 m-3 z-3">${badge}</div>` : ''}
-                <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-3 z-3 like-btn" data-campaign-id="${campaign.id}">
+        <div class="campaign-card">
+            <div class="campaign-image">
+                <img src="${imageUrl}" alt="${campaign.title}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23e9ecef%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%236c757d%22 font-family=%22Arial%22 font-size=%2220%22 text-anchor=%22middle%22 x=%22200%22 y=%22135%22%3ECampaign Image%3C/text%3E%3C/svg%3E'">
+                <span class="campaign-badge ${badgeClass}">${badgeText}</span>
+                <button class="like-btn" data-campaign-id="${campaign.id}">
                     <i class="far fa-heart"></i>
                     <span class="like-count">${likesCount}</span>
                 </button>
-                <img src="${imageUrl}" alt="${campaign.title}" 
-                     class="w-100 rounded-top-3" 
-                     style="height: 200px; object-fit: cover;"
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23e9ecef%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%236c757d%22 font-family=%22Arial%22 font-size=%2220%22 text-anchor=%22middle%22 x=%22200%22 y=%22135%22%3ECampaign Image%3C/text%3E%3C/svg%3E'">
             </div>
-            <div class="p-4">
-                <h6 class="fw-bold mb-2 text-truncate-2">${campaign.title}</h6>
-                <p class="text-muted small mb-3 text-truncate-3">${campaign.description}</p>
+            <div class="card-body">
+                <h5 class="card-title">${campaign.title}</h5>
+                <p class="card-text">${campaign.description}</p>
                 
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <small class="text-muted">Tiến độ</small>
-                        <small class="fw-bold text-primary">${campaign.progress}%</small>
+                <div class="campaign-progress">
+                    <div class="progress-label">
+                        <span>Tiến độ</span>
+                        <span class="progress-percentage">${campaign.progress}%</span>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                        <div class="progress-bar" role="progressbar" 
-                             style="width: ${campaign.progress}%"></div>
-                    </div>
-                </div>
-                
-                <div class="row text-center mb-3">
-                    <div class="col-4">
-                        <h6 class="fw-bold text-primary mb-0 small">${campaign.collectedEth}</h6>
-                        <small class="text-muted" style="font-size: 0.7rem;">ETH</small>
-                    </div>
-                    <div class="col-4">
-                        <h6 class="fw-bold text-success mb-0 small">${supportersCount}</h6>
-                        <small class="text-muted" style="font-size: 0.7rem;">Người ủng hộ</small>
-                    </div>
-                    <div class="col-4">
-                        <h6 class="fw-bold text-info mb-0 small">${campaign.daysLeft}</h6>
-                        <small class="text-muted" style="font-size: 0.7rem;">Ngày còn lại</small>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: ${campaign.progress}%" aria-valuenow="${campaign.progress}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
                 
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-map-marker-alt text-muted me-2"></i>
-                    <small class="text-muted">${campaign.location}</small>
+                <div class="campaign-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Đã quyên góp</span>
+                        <span class="stat-value amount">${raisedVnd} <small>VND</small></span>
+                    </div>
+                    <div class="stat-item text-end">
+                        <span class="stat-label">Mục tiêu</span>
+                        <span class="stat-value target">${targetVnd} <small>VND</small></span>
+                    </div>
                 </div>
                 
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <small class="text-success">Đã xác minh</small>
-                </div>
-                
-                <div class="d-grid">
-                    <a href="campaign-detail.html?id=${campaign.id}" class="btn btn-primary">
-                        <i class="fas fa-eye me-2"></i>Xem chi tiết
+                <div class="campaign-info mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${campaign.location}</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-clock"></i>
+                            <span>${campaign.active ? (campaign.daysLeft + ' ngày còn lại') : 'Đã kết thúc'}</span>
+                        </div>
+                    </div>
+                    <a href="campaign-detail.html?id=${campaign.id}" class="btn btn-primary w-100 mt-3">
+                        Xem chi tiết
                     </a>
                 </div>
             </div>
